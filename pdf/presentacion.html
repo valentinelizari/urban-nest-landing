@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Urban Nest · Presentación para propietarios</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+@page{size:1280px 720px;margin:0}
+:root{--crimson:#8B1D3D;--wine:#5E1028;--rose:#E9A3B6;--rose2:#C98B9C;--sand:#D9A27E;--bg:#FAF6F2;--bg2:#F3ECE6;--ink:#1B1418;--muted:#6E6266;--line:#E3D8D1;--tint:#F7E8EC;--hero:linear-gradient(140deg,#8B1D3D 0%,#5E1028 100%)}
+*{box-sizing:border-box}
+html,body{margin:0;background:#888}
+body{font-family:Inter,system-ui,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;font-feature-settings:"tnum"}
+.s{width:1280px;height:720px;position:relative;overflow:hidden;background:var(--bg);page-break-after:always;break-after:page;padding:64px 72px 0}
+.s:last-child{page-break-after:auto}
+h1,h2,h3{margin:0;letter-spacing:-.035em;line-height:1.04;font-weight:800}
+p{margin:0}
+.k{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--crimson);display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.k::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(139,29,61,.18)}
+h2{font-size:46px;max-width:20ch}
+h2 .soft{color:var(--muted)}
+.lead{color:var(--muted);font-size:18px;line-height:1.55;margin-top:14px;max-width:62ch}
+.foot{position:absolute;left:72px;right:72px;bottom:26px;display:flex;justify-content:space-between;font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+.foot .l{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink)}
+.foot img{width:18px}
+.dark{background:var(--hero);color:#fff}
+.dark .k{color:#F5B8C6}.dark .k::before{box-shadow:0 0 0 4px rgba(255,255,255,.15)}
+.dark .lead{color:#F1D6DE}
+.dark .foot{border-color:rgba(255,255,255,.2);color:#F1D6DE}.dark .foot .l{color:#fff}
+.num{font-variant-numeric:tabular-nums}
+.acc{color:var(--crimson)}
+.row{display:flex;gap:56px}
+.col{flex:1;min-width:0}
+.rule{border-top:2px solid var(--ink)}
+.li{display:flex;justify-content:space-between;gap:18px;padding:12px 0;border-bottom:1px solid var(--line);font-size:15px}
+.li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap}
+.muted{color:var(--muted)}
+.big{font-size:96px;font-weight:900;letter-spacing:-.06em;line-height:.9;color:var(--crimson)}
+
+/* 1 portada */
+.cover{padding:0;display:flex}
+.cover .l{width:560px;background:var(--hero);color:#fff;padding:64px 60px;display:flex;flex-direction:column}
+.cover .l img{width:58px;filter:brightness(0) invert(1)}
+.cover h1{font-size:64px;font-weight:900;letter-spacing:-.045em;line-height:.98;margin-top:auto}
+.cover h1 em{font-style:normal;color:#F5B8C6}
+.cover .l p{color:#F1D6DE;font-size:18px;margin-top:20px;max-width:34ch;line-height:1.5}
+.cover .l small{display:block;margin-top:40px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#F5B8C6}
+.cover .r{flex:1;background:url(img/obelisco-night.jpg) center/cover}
+
+/* 2 resumen */
+.sum{display:grid;grid-template-columns:420px 1fr;gap:64px;margin-top:6px}
+.sum h2{font-size:52px}
+.sum dl{margin:0;border-top:2px solid var(--ink)}
+.sum dl div{display:grid;grid-template-columns:190px 1fr;gap:24px;padding:15px 0;border-bottom:1px solid var(--line)}
+.sum dt{font-weight:700;font-size:15px}
+.sum dd{margin:0;font-size:15px;color:var(--muted);line-height:1.5}
+.sum dd b{color:var(--ink)}
+
+/* 3 equipo */
+.facts{display:flex;margin-top:48px;border-top:2px solid var(--ink)}
+.facts div{flex:1;padding:22px 20px 0 0}
+.facts div+div{padding-left:22px;border-left:1px solid var(--line)}
+.facts b{display:block;font-size:54px;font-weight:900;letter-spacing:-.05em;line-height:1;color:var(--crimson)}
+.facts span{display:block;font-size:14px;color:var(--muted);margin-top:8px;line-height:1.4}
+.pillars{display:grid;grid-template-columns:1fr 1fr;gap:12px 56px;margin-top:44px}
+.pillars p{font-size:15px;color:var(--muted);line-height:1.5}
+.pillars p b{display:block;color:var(--ink);font-size:17px;margin-bottom:2px}
+
+/* 4 recorrido */
+.tl{display:grid;grid-template-columns:repeat(4,1fr);gap:34px 30px;margin-top:40px;position:relative}
+.tl div{position:relative;padding-top:30px}
+.tl div::before{content:"";position:absolute;left:0;right:-30px;top:8px;height:2px;background:var(--line)}
+.tl div:nth-child(4n)::before{right:0}
+.tl div::after{content:"";position:absolute;left:0;top:2px;width:14px;height:14px;border-radius:50%;background:var(--crimson);box-shadow:0 0 0 5px var(--tint)}
+.tl i{font-style:normal;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--crimson)}
+.tl h3{font-size:20px;margin-top:6px}
+.tl p{font-size:14px;color:var(--muted);margin-top:6px;line-height:1.45}
+
+/* 5 quién paga qué */
+.who{display:grid;grid-template-columns:1.2fr 1fr;gap:56px;margin-top:30px}
+.who h3{font-size:20px;margin-bottom:10px}
+.who ul{list-style:none;margin:0;padding:0;border-top:2px solid var(--ink)}
+.who li{padding:11px 0;border-bottom:1px solid var(--line);font-size:15px;display:flex;gap:12px}
+.who li::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--crimson);margin-top:8px}
+.pay{display:grid;gap:0;border-top:2px solid var(--ink)}
+.pay div{display:grid;grid-template-columns:150px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14.5px;line-height:1.45}
+.pay b{font-size:15px}
+.pay span{color:var(--muted)}
+
+/* 6 caso principal */
+.case{padding:0;display:flex}
+.case .ph{width:500px;background:url(../assets/img/obe.jpg) center/cover}
+.case .tx{flex:1;padding:64px 64px 0}
+.case .score{display:flex;align-items:baseline;gap:22px;margin-top:30px}
+.case .score b{font-size:110px;font-weight:900;letter-spacing:-.06em;line-height:.85;color:var(--crimson)}
+.case .score span{color:var(--muted);font-size:15px;line-height:1.5}
+.case .foot{left:564px}
+.cats{margin-top:30px;border-top:2px solid var(--ink)}
+.cat{display:grid;grid-template-columns:150px 1fr 40px;gap:14px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.cat .bar{height:6px;border-radius:6px;background:var(--line);overflow:hidden}
+.cat .bar i{display:block;height:100%;background:var(--crimson)}
+.cat b{text-align:right}
+
+/* 7 dos casos */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:30px}
+.two .ph{height:230px;border-radius:22px;overflow:hidden;background:var(--hero);display:flex;align-items:center;justify-content:center;color:#F3D6DE}
+.two .ph img{width:100%;height:100%;object-fit:cover}
+.two .badge{display:inline-block;margin-top:20px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--crimson);background:var(--tint);padding:5px 11px;border-radius:99px}
+.two h3{font-size:28px;margin-top:10px}
+.two .w{color:var(--muted);font-size:14px;margin-top:4px}
+.two .t{font-size:16px;font-weight:600;margin-top:10px;line-height:1.4;max-width:40ch}
+.two .sc{display:flex;align-items:baseline;gap:14px;margin-top:12px}
+.two .sc b{font-size:46px;font-weight:900;letter-spacing:-.05em;color:var(--crimson);line-height:1}
+.two .sc span{color:var(--muted);font-size:14px}
+
+/* 8 valoran */
+.hl{display:flex;margin-top:30px;border-top:2px solid var(--ink)}
+.hl div{flex:1;padding:18px 18px 0 0}
+.hl div+div{padding-left:20px;border-left:1px solid var(--line)}
+.hl b{display:block;font-size:42px;font-weight:900;letter-spacing:-.05em;color:var(--crimson);line-height:1}
+.hl span{display:block;font-size:14px;font-weight:700;margin-top:6px}
+.hl small{display:block;font-size:12.5px;color:var(--muted);margin-top:3px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{text-align:left;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 12px;border-bottom:2px solid var(--ink)}
+td{padding:9px 12px;border-bottom:1px solid var(--line)}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+.dp{position:relative;height:20px}
+.dp::before{content:"";position:absolute;left:0;right:0;top:9px;height:2px;background:var(--line)}
+.dp i{position:absolute;top:3px;width:14px;height:14px;margin-left:-7px;border-radius:50%;border:2px solid #fff}
+.key{display:flex;gap:18px;font-size:12.5px;color:var(--muted);margin-top:12px}
+.key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:-1px}
+
+/* 9 mes */
+.month{display:grid;grid-template-columns:380px 1fr 290px;gap:36px;margin-top:26px;align-items:start}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal .h{font-size:10.5px;font-weight:700;text-align:center;color:var(--muted)}
+.cal .d{height:40px;border-radius:9px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted)}
+.cal .d.o{background:var(--crimson);color:#fff}
+.stays .li{padding:7px 0;font-size:13.5px}
+.stays small{display:block;color:var(--muted);font-size:11.5px}
+.paid{background:var(--hero);color:#fff;border-radius:22px;padding:22px 24px}
+.paid small{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#F5D0DA}
+.paid b{display:block;font-size:52px;font-weight:900;letter-spacing:-.05em;line-height:1.05;margin-top:6px}
+.paid p{font-size:14px;color:#F5D0DA;margin-top:8px;line-height:1.45}
+.ded .li{font-size:13.5px;padding:8px 0}
+
+/* 10 año */
+.yr{display:grid;grid-template-columns:360px 1fr;gap:48px;margin-top:20px;align-items:end}
+.chart{height:330px;display:flex;flex-direction:column}
+.plot{flex:1;display:grid;grid-template-columns:repeat(12,1fr);gap:10px;position:relative}
+.plot div{position:relative}
+.plot i{position:absolute;left:0;right:0;bottom:0;border-radius:7px 7px 2px 2px;background:var(--hero)}
+.plot div.lo i{background:var(--rose)}
+.plot b{position:absolute;left:0;right:0;text-align:center;font-size:12px}
+.plot .tr{position:absolute;left:0;right:0;border-top:2px dashed var(--muted)}
+.plot .tr em{position:absolute;left:0;bottom:4px;font-style:normal;font-size:12px;font-weight:600;color:var(--muted);background:var(--bg);padding:0 6px}
+.ml{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;text-align:center;font-size:12px;color:var(--muted);margin-top:8px}
+
+/* 13 reporte */
+.rep{display:grid;grid-template-columns:1fr 1fr;gap:44px;margin-top:28px}
+.kp{display:flex;border-top:2px solid var(--ink)}
+.kp div{flex:1;padding:14px 12px 0 0}
+.kp div+div{padding-left:14px;border-left:1px solid var(--line)}
+.kp small{display:block;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.kp b{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.spark{margin-top:22px}
+.li.t{font-weight:800;border-bottom:0;border-top:2px solid var(--ink);font-size:17px}
+
+/* 14 equipamiento */
+.pb{margin-top:34px}
+.pb b{display:block;font-size:84px;font-weight:900;letter-spacing:-.06em;line-height:.9;color:var(--crimson)}
+.pb span{display:block;color:var(--muted);font-size:15px;margin-top:10px;max-width:34ch;line-height:1.5}
+.kit .li{display:grid;grid-template-columns:1fr auto;padding:13px 0}
+.kit .li small{grid-column:1;color:var(--muted);font-size:13px}
+.kit .li b{font-size:16px}
+.kit .li em{font-style:normal;font-weight:700;grid-row:1;grid-column:2}
+.kit .tot b,.kit .tot em{font-size:24px;font-weight:900;color:var(--crimson)}
+
+/* 15 preguntas */
+.faq{display:grid;grid-template-columns:1fr 1fr;gap:4px 56px;margin-top:24px}
+.faq div{padding:12px 0;border-bottom:1px solid var(--line)}
+.faq b{display:block;font-size:15.5px}
+.faq p{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.45}
+
+/* 16 próximos pasos */
+.end{padding:0;display:flex}
+.end .l{flex:1;padding:44px 60px 0 72px}
+.end .r{width:430px;background:url(img/room-night.jpg) center/cover;position:relative}
+.steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:7px}
+.steps li{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start;font-size:14.5px;color:#F1D6DE;line-height:1.45}
+.steps li span{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--wine);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.steps li b{color:#fff;display:block;font-size:16px}
+.wa{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22)}
+.wa h3{font-size:20px}
+.wa p{font-size:14.5px;color:#F1D6DE;margin-top:6px;line-height:1.5;max-width:52ch}
+.ct{display:flex;gap:12px;margin-top:14px}
+.ct a{display:inline-flex;align-items:center;gap:10px;background:#fff;color:var(--wine);text-decoration:none;font-weight:700;font-size:15px;padding:12px 18px;border-radius:99px}
+.ct a.o{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.4)}
+.end .foot{right:500px}
+</style>
+</head>
+<body>
+
+<!-- 1 -->
+<section class="s cover">
+  <div class="l">
+    <img src="../assets/img/logo.webp" alt="Urban Nest">
+    <h1>Tu departamento rinde más. <em>Vos no hacés nada.</em></h1>
+    <p>Gestión completa de departamentos en Airbnb, en Buenos Aires. Todo lo que necesitás saber antes de decidir.</p>
+    <small>Presentación para propietarios · Octubre 2026</small>
+  </div>
+  <div class="r"></div>
+</section>
+
+<!-- 2 -->
+<section class="s">
+  <div class="sum">
+    <div>
+      <p class="k">En una página</p>
+      <h2>Más ingreso, en dólares, sin ocuparte de nada.</h2>
+      <p class="lead">Nos ocupamos del departamento de punta a punta. Vos recibís un reporte claro y la transferencia todos los meses.</p>
+    </div>
+    <dl>
+      <div><dt>Qué hacemos</dt><dd>Precios, anuncio, huéspedes, ingreso autónomo, limpieza, mantenimiento, reseñas, reporte y liquidación.</dd></div>
+      <div><dt>Cuánto rinde</dt><dd>En un monoambiente céntrico, <b>USD 8.029 al año</b> para el propietario frente a <b>USD 5.940</b> de un alquiler tradicional: <b>35% más</b>.</dd></div>
+      <div><dt>Cuánto cobramos</dt><dd><b>20% de lo que ingresa</b>, después de la tarifa de servicio de Airbnb (15,5%). La limpieza la paga el huésped.</dd></div>
+      <div><dt>Cómo cobrás</dt><dd>Liquidación mensual con el detalle de cada reserva, <b>en dólares o en pesos</b>.</dd></div>
+      <div><dt>Cuándo empezás</dt><dd>Entre <b>dos y cuatro semanas</b> desde la primera charla, según el estado del departamento.</dd></div>
+      <div><dt>Quiénes somos</dt><dd>Superanfitriones con <b>4,86★</b> de promedio en <b>121 reseñas</b> y 4 años en Airbnb.</dd></div>
+    </dl>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Proyección de referencia para un monoambiente céntrico · 02</span></div>
+</section>
+
+<!-- 3 -->
+<section class="s">
+  <p class="k">Quiénes somos</p>
+  <h2>Un equipo chico, dedicado solo a Airbnb.</h2>
+  <p class="lead">Somos Valentín, Javier y Natalia. Gestionamos departamentos en Buenos Aires con el rigor de una operación profesional y el cuidado de una gestión familiar.</p>
+  <div class="facts">
+    <div><b>4 años</b><span>gestionando en Airbnb</span></div>
+    <div><b>5</b><span>departamentos gestionados</span></div>
+    <div><b>121</b><span>reseñas en los departamentos activos</span></div>
+    <div><b>4,86★</b><span>calificación promedio</span></div>
+    <div><b>&lt;1 h</b><span>de respuesta al 100% de los mensajes</span></div>
+  </div>
+  <div class="pillars">
+    <p><b>Todo delegado</b>No atendés mensajes, llaves ni limpiezas. Nunca más una entrega de llaves.</p>
+    <p><b>Calidad comprobada</b>Calificaciones altas desde el primer mes, reseña por reseña.</p>
+    <p><b>Números abiertos</b>Reporte y liquidación cada mes, con cada reserva y cada gasto a la vista.</p>
+    <p><b>Tu departamento, cuidado</b>Limpieza y control después de cada huésped, no al final de un contrato.</p>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Datos de Airbnb al 3/10/2026 · 03</span></div>
+</section>
+
+<!-- 4 -->
+<section class="s">
+  <p class="k">Lo que hacemos</p>
+  <h2>Ocho momentos de una reserva. <span class="soft">En todos trabajamos nosotros.</span></h2>
+  <div class="tl">
+    <div><i>Todos los días</i><h3>Precio y calendario</h3><p>Tarifas por temporada, día de la semana, eventos y anticipación.</p></div>
+    <div><i>Al reservar</i><h3>Llega la reserva</h3><p>Respuesta en menos de una hora y revisión del perfil del huésped.</p></div>
+    <div><i>48 horas antes</i><h3>Antes de la llegada</h3><p>Registro en el edificio e instrucciones de acceso paso a paso.</p></div>
+    <div><i>Día de llegada</i><h3>Ingreso autónomo</h3><p>Caja de seguridad o cerradura inteligente, a cualquier hora.</p></div>
+    <div><i>Mientras se aloja</i><h3>Durante la estadía</h3><p>Atención en cualquier horario y coordinación de arreglos.</p></div>
+    <div><i>Día de salida</i><h3>Salida y limpieza</h3><p>Limpieza profesional, blanquería de hotel, reposición y control.</p></div>
+    <div><i>Después</i><h3>Reseña</h3><p>Calificamos al huésped y respondemos cada comentario.</p></div>
+    <div><i>Cada mes</i><h3>Reporte y liquidación</h3><p>Ocupación, tarifa, reseñas, gastos y el total a transferir.</p></div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>04</span></div>
+</section>
+
+<!-- 5 -->
+<section class="s">
+  <p class="k">Qué incluye y quién paga qué</p>
+  <h2>Sin letra chica.</h2>
+  <div class="who">
+    <div>
+      <h3>Incluido en nuestra gestión</h3>
+      <ul>
+        <li>Precios dinámicos y manejo del calendario</li>
+        <li>Anuncio optimizado: fotos profesionales y descripción estratégica</li>
+        <li>Atención a huéspedes en cualquier horario, con respuesta en menos de una hora</li>
+        <li>Ingreso autónomo y seguimiento de cada llegada</li>
+        <li>Coordinación de limpieza, blanquería y amenities entre estadías</li>
+        <li>Coordinación de mantenimiento y técnicos</li>
+        <li>Reseñas, reporte de rendimiento y liquidación mensual</li>
+      </ul>
+    </div>
+    <div class="pay">
+      <div><b>Airbnb</b><span>Cobra su tarifa de servicio: 15,5% de lo que pagan los huéspedes por las noches.</span></div>
+      <div><b>Urban Nest</b><span>20% de lo que ingresa, después de la tarifa de Airbnb.</span></div>
+      <div><b>El huésped</b><span>Paga la limpieza aparte. No sale de tu ingreso.</span></div>
+      <div><b>Vos</b><span>Servicios y expensas, cubiertos por el ingreso extra. Los arreglos que necesitan tu aprobación te los consultamos antes. Los gastos del mes figuran detallados en la liquidación.</span></div>
+      <div><b>Uso propio</b><span>Bloqueás las fechas que quieras para usar tu departamento.</span></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>05</span></div>
+</section>
+
+<!-- 6 -->
+<section class="s case">
+  <div class="ph"></div>
+  <div class="tx">
+    <p class="k">Caso de éxito · Favorito entre huéspedes</p>
+    <h2>Urban Nest Obelisco</h2>
+    <p class="lead" style="margin-top:8px">Studio en Av. Corrientes y Callao, para 2 huéspedes. De anuncio nuevo a Favorito entre huéspedes en menos de un año.</p>
+    <div class="score"><b>4,95★</b><span>58 reseñas<br>Rinde 1,6 veces un alquiler tradicional</span></div>
+    <div class="cats">
+      <div class="cat"><span>Limpieza</span><div class="bar"><i style="width:100%"></i></div><b>5,0</b></div>
+      <div class="cat"><span>Veracidad</span><div class="bar"><i style="width:100%"></i></div><b>5,0</b></div>
+      <div class="cat"><span>Llegada</span><div class="bar"><i style="width:98%"></i></div><b>4,9</b></div>
+      <div class="cat"><span>Comunicación</span><div class="bar"><i style="width:100%"></i></div><b>5,0</b></div>
+      <div class="cat"><span>Ubicación</span><div class="bar"><i style="width:98%"></i></div><b>4,9</b></div>
+      <div class="cat"><span>Calidad y precio</span><div class="bar"><i style="width:98%"></i></div><b>4,9</b></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest</span><span>Calificaciones en Airbnb al 3/10/2026 · 06</span></div>
+</section>
+
+<!-- 7 -->
+<section class="s">
+  <p class="k">Más resultados</p>
+  <h2>Cada departamento, su huésped. <span class="soft">El mismo estándar.</span></h2>
+  <div class="two">
+    <div>
+      <div class="ph"><svg width="190" viewBox="0 0 200 160" aria-hidden="true"><path d="M30 150V60h50v90M80 150V30h60v120M140 150V80h40v70" fill="none" stroke="currentColor" stroke-width="3"/><path d="M95 50h10M115 50h10M95 70h10M115 70h10M95 90h10M115 90h10M45 80h8M60 80h8M45 100h8M60 100h8M152 100h8M152 120h8" stroke="currentColor" stroke-width="5"/></svg></div>
+      <span class="badge">En crecimiento</span>
+      <h3>Urban Nest Olleros</h3>
+      <p class="w">Suite con entrada independiente en Las Cañitas · 2 huéspedes</p>
+      <p class="t">23 reseñas en sus primeros cinco meses, con 5,0 en comunicación y ubicación.</p>
+      <div class="sc"><b>4,83★</b><span>23 reseñas</span></div>
+    </div>
+    <div>
+      <div class="ph"><img src="../assets/img/acu.jpg" alt=""></div>
+      <span class="badge">Ideal para grupos</span>
+      <h3>Urban Nest Acuña</h3>
+      <p class="w">Dúplex con terraza privada en Palermo · 4 huéspedes</p>
+      <p class="t">Un dúplex para grupos con 5,0 en llegada, comunicación y ubicación.</p>
+      <div class="sc"><b>4,75★</b><span>40 reseñas</span></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Calificaciones en Airbnb al 3/10/2026 · 07</span></div>
+</section>
+
+<!-- 8 -->
+<section class="s">
+  <p class="k">Lo que dicen los huéspedes</p>
+  <h2>Lo que más valoran de nuestros departamentos.</h2>
+  <div class="hl">
+    <div><b>5,0</b><span>Comunicación</span><small>En los tres departamentos activos</small></div>
+    <div><b>4,86</b><span>Promedio general</span><small>Ponderado por 121 reseñas</small></div>
+    <div><b>100%</b><span>Respuesta en menos de 1 hora</span><small>De los mensajes de huéspedes</small></div>
+    <div><b>5,0</b><span>Limpieza en Obelisco</span><small>Con 58 reseñas</small></div>
+  </div>
+  <table style="margin-top:26px">
+    <thead><tr><th style="width:190px">Categoría</th><th class="n" style="width:90px">Obelisco</th><th class="n" style="width:90px">Olleros</th><th class="n" style="width:90px">Acuña</th><th>De 4,5 a 5,0</th></tr></thead>
+    <tbody id="catRows"></tbody>
+  </table>
+  <div class="key"><span><i style="background:#8B1D3D"></i>Obelisco</span><span><i style="background:#C98B9C"></i>Olleros</span><span><i style="background:#D9A27E"></i>Acuña</span></div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Calificaciones por categoría en Airbnb al 3/10/2026 · 08</span></div>
+</section>
+
+<!-- 9 -->
+<section class="s">
+  <p class="k">Un mes, de cerca</p>
+  <h2>Septiembre en un monoambiente céntrico.</h2>
+  <div class="month">
+    <div><div class="cal" id="cal"></div><p class="muted" style="font-size:14px;margin-top:12px"><b style="color:var(--ink)">19 noches</b> reservadas · <b style="color:var(--ink)">63%</b> de ocupación</p></div>
+    <div class="stays" id="stays"></div>
+    <div>
+      <div class="ded">
+        <div class="li"><span>Ingreso por noches</span><span><b>USD 1.218</b></span></div>
+        <div class="li muted"><span>Tarifa de Airbnb (15,5%)</span><span>USD 189</span></div>
+        <div class="li muted"><span>Gestión Urban Nest (20%)</span><span>USD 206</span></div>
+        <div class="li muted"><span>Gastos del mes</span><span>USD 0</span></div>
+      </div>
+      <div class="paid" style="margin-top:16px"><small>Para vos</small><b>USD 823</b><p>66% más que los USD 495 de un alquiler tradicional ese mes.</p></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Nombres y montos ilustrativos, basados en el desempeño real de uno de nuestros departamentos · 09</span></div>
+</section>
+
+<!-- 10 -->
+<section class="s">
+  <p class="k">Más que un alquiler tradicional</p>
+  <h2>Tu departamento trabaja todo el año, <span class="acc">en dólares.</span></h2>
+  <div class="yr">
+    <div>
+      <div class="big">+35%</div>
+      <p class="lead">de ingreso anual para el propietario: <b style="color:var(--ink)">USD 8.029</b> al año (USD 669 por mes en promedio) frente a <b style="color:var(--ink)">USD 5.940</b> de un alquiler tradicional. Ya descontadas la tarifa de Airbnb y nuestra gestión.</p>
+    </div>
+    <div class="chart"><div class="plot" id="plot"></div><div class="ml" id="ml"></div></div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Proyección de referencia. Tradicional: Zonaprop, agosto 2026, a $1.560 por dólar · 10</span></div>
+</section>
+
+<!-- 11 -->
+<section class="s">
+  <p class="k">Proyección</p>
+  <h2>Mes a mes, lo que recibís.</h2>
+  <div class="row" style="margin-top:20px;gap:44px">
+    <table style="flex:1;font-size:13.5px">
+      <thead><tr><th>Mes</th><th class="n">Noches</th><th class="n">Tarifa</th><th class="n">Ingreso por noches</th><th class="n" style="color:var(--crimson)">Para vos</th><th class="n">Tradicional</th><th class="n">Diferencia</th></tr></thead>
+      <tbody id="proj"></tbody>
+    </table>
+    <div style="width:270px;font-size:14px;color:var(--muted);line-height:1.55">
+      <p><b style="color:var(--ink);display:block;font-size:16px;margin-bottom:6px">Cómo se calcula “Para vos”</b>Lo que pagan los huéspedes por las noches, menos la tarifa de servicio de Airbnb (15,5%) y nuestra gestión integral (20% de lo que ingresa).</p>
+      <p style="margin-top:12px">La gestión incluye precios, huéspedes, ingreso, coordinación de limpieza, mantenimiento y reportes. La limpieza la paga el huésped aparte.</p>
+      <p style="margin-top:12px">Entre paréntesis, los meses de temporada baja en los que el alquiler tradicional rinde más. En el año, la diferencia es de USD 2.089 a tu favor.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Monoambiente céntrico, 2 huéspedes. Valores en USD · 11</span></div>
+</section>
+
+<!-- 12 -->
+<section class="s">
+  <p class="k">Comparación</p>
+  <h2>Lo que cambia para vos.</h2>
+  <table style="margin-top:26px;font-size:15.5px">
+    <thead><tr><th style="width:250px"></th><th>Alquiler tradicional</th><th style="color:var(--crimson)">Con Urban Nest</th></tr></thead>
+    <tbody>
+      <tr><td><b>Ingreso anual estimado</b></td><td>USD 5.940</td><td class="acc"><b>USD 8.029</b></td></tr>
+      <tr><td><b>Moneda</b></td><td>Pesos, con ajuste por índice</td><td class="acc">Dólares, a tarifa de mercado</td></tr>
+      <tr><td><b>Contrato</b></td><td>Varios años, difícil de modificar</td><td class="acc">Sin inquilino fijo</td></tr>
+      <tr><td><b>Riesgo de impago</b></td><td>Existe, y el desalojo es lento</td><td class="acc">Airbnb cobra antes de cada estadía</td></tr>
+      <tr><td><b>Estado del inmueble</b></td><td>Se revisa al final del contrato</td><td class="acc">Limpieza y control después de cada huésped</td></tr>
+      <tr><td><b>Uso propio</b></td><td>No</td><td class="acc">Bloqueás fechas cuando quieras usarlo</td></tr>
+      <tr><td><b>Servicios y expensas</b></td><td>Los paga el inquilino</td><td class="acc">Los pagás vos, cubiertos por el ingreso extra</td></tr>
+    </tbody>
+  </table>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>12</span></div>
+</section>
+
+<!-- 13 -->
+<section class="s">
+  <p class="k">Cada mes</p>
+  <h2>Sabés exactamente qué pasó con tu departamento.</h2>
+  <div class="rep">
+    <div>
+      <h3 style="font-size:20px">Reporte de rendimiento</h3>
+      <p class="muted" style="font-size:13px;margin:4px 0 14px">Septiembre · departamento de ejemplo</p>
+      <div class="kp"><div><small>Ocupación</small><b>63%</b></div><div><small>Tarifa prom.</small><b>USD 64</b></div><div><small>Calificación</small><b>5,0★</b></div><div><small>Para vos</small><b class="acc">USD 823</b></div></div>
+      <svg class="spark" viewBox="0 0 520 130" width="100%" aria-hidden="true"><path d="M0 110 C60 100 90 70 140 76 S230 40 280 52 S380 18 430 30 S500 10 520 14 L520 130 L0 130Z" fill="#F7E8EC"/><path d="M0 110 C60 100 90 70 140 76 S230 40 280 52 S380 18 430 30 S500 10 520 14" fill="none" stroke="#8B1D3D" stroke-width="3"/></svg>
+      <p class="muted" style="font-size:13px">Ocupación, tarifa, reseñas y comparación con el mes anterior.</p>
+    </div>
+    <div>
+      <h3 style="font-size:20px">Liquidación al propietario</h3>
+      <p class="muted" style="font-size:13px;margin:4px 0 14px">Septiembre · departamento de ejemplo</p>
+      <div class="rule"></div>
+      <div class="li"><span>Ingreso por noches · 7 reservas, 19 noches</span><span>USD 1.218</span></div>
+      <div class="li muted"><span>Tarifa de Airbnb (15,5%)</span><span>USD 189</span></div>
+      <div class="li muted"><span>Gestión Urban Nest (20%)</span><span>USD 206</span></div>
+      <div class="li muted"><span>Gastos del mes</span><span>USD 0</span></div>
+      <div class="li t"><span>Total a transferir</span><span class="acc">USD 823</span></div>
+      <p class="muted" style="font-size:13px;margin-top:10px">Unos $1.284.000 a $1.560 por dólar. Transferencia en dólares o en pesos. Montos ilustrativos.</p>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>13</span></div>
+</section>
+
+<!-- 14 -->
+<section class="s">
+  <div class="row">
+    <div class="col">
+      <p class="k">Puesta en marcha</p>
+      <h2>¿Tu departamento no está equipado?</h2>
+      <p class="lead">Una inversión única para dejarlo listo para huéspedes. Si ya está amueblado, ajustamos solo lo necesario. El equipamiento queda en tu departamento y suma valor a la propiedad.</p>
+      <div class="pb"><b>18 meses</b><span>es lo que tarda en recuperarse, aproximadamente, con el ingreso adicional frente al alquiler tradicional.</span></div>
+    </div>
+    <div class="col kit" style="padding-top:40px">
+      <div class="rule"></div>
+      <div class="li"><b>Cocina y electro</b><em>USD 830</em><small>Heladera, microondas, pava, tostadora, vajilla y batería</small></div>
+      <div class="li"><b>Living y comedor</b><em>USD 950</em><small>Sillón, Smart TV 43", desayunador y cortina roller</small></div>
+      <div class="li"><b>Dormitorio y baño</b><em>USD 660</em><small>Sommier queen, mesitas, blackout y set de baño</small></div>
+      <div class="li"><b>Textiles y extras</b><em>USD 575</em><small>Blanquería de hotel, edredón, cerradura inteligente y plancha</small></div>
+      <div class="li"><b>Puesta a punto</b><em>USD 150</em><small>Limpieza profunda y service de aire acondicionado</small></div>
+      <div class="li tot" style="border-bottom:0"><b>Total estimado</b><em>USD 3.165</em></div>
+    </div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Precios de referencia de mercado · 14</span></div>
+</section>
+
+<!-- 15 -->
+<section class="s">
+  <p class="k">Preguntas frecuentes</p>
+  <h2>Lo que nos preguntan siempre.</h2>
+  <div class="faq">
+    <div><b>¿Cuánto cobran?</b><p>El 20% de lo que ingresa, después de la tarifa de servicio de Airbnb. Sin ingresos, no cobramos gestión.</p></div>
+    <div><b>¿Cuándo y cómo cobro?</b><p>En los primeros días de cada mes, con la liquidación detallada. En dólares o en pesos.</p></div>
+    <div><b>¿Puedo usar mi departamento?</b><p>Sí. Nos avisás y bloqueamos las fechas que quieras.</p></div>
+    <div><b>¿Quién paga la limpieza?</b><p>El huésped, aparte. No sale de tu ingreso.</p></div>
+    <div><b>¿Qué pasa si se rompe algo?</b><p>Coordinamos los técnicos. Los arreglos que necesitan tu aprobación te los consultamos antes.</p></div>
+    <div><b>¿Y si un huésped no paga?</b><p>No pasa: Airbnb cobra antes de cada estadía.</p></div>
+    <div><b>¿Cuánto tardamos en empezar?</b><p>Entre dos y cuatro semanas desde la primera charla, según el estado del departamento.</p></div>
+    <div><b>¿Y si no está amueblado?</b><p>Te armamos el plan de equipamiento. La referencia para un monoambiente es USD 3.165, que se recupera en unos 18 meses.</p></div>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>15</span></div>
+</section>
+
+<!-- 16 -->
+<section class="s end dark">
+  <div class="l">
+    <img src="../assets/img/logo.webp" alt="" style="width:44px;filter:brightness(0) invert(1)">
+    <h2 style="margin-top:16px;font-size:40px">Empecemos por tu departamento.</h2>
+    <ol class="steps">
+      <li><span>1</span><div><b>Contacto</b>Hablamos de tu propiedad y de lo que esperás de ella.</div></li>
+      <li><span>2</span><div><b>Visita</b>Recorremos el departamento y evaluamos su potencial.</div></li>
+      <li><span>3</span><div><b>Plan de mejoras</b>Definimos qué equipar o ajustar para que rinda más.</div></li>
+      <li><span>4</span><div><b>Anuncio</b>Fotos profesionales y publicación optimizada.</div></li>
+      <li><span>5</span><div><b>Facturación</b>Llegan los huéspedes y, cada mes, tu liquidación.</div></li>
+    </ol>
+    <div class="wa">
+      <h3>Después, el análisis de tu departamento por WhatsApp</h3>
+      <p>Con tu ubicación, tamaño y estado te mandamos una proyección mes a mes, lo que conviene mejorar y la inversión que haría falta. Sin costo y sin compromiso.</p>
+      <div class="ct"><a href="https://wa.me/5491132126888">WhatsApp +54 9 11 3212 6888</a><a class="o" href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a></div>
+    </div>
+  </div>
+  <div class="r"></div>
+  <div class="foot"><span class="l">Urban Nest · urban-nest-landing.vercel.app</span></div>
+</section>
+
+<script>
+const CATS = [["Limpieza", 5.0, 4.8, 4.8], ["Veracidad", 5.0, 4.6, 4.9], ["Llegada", 4.9, 4.9, 5.0], ["Comunicación", 5.0, 5.0, 5.0], ["Ubicación", 4.9, 5.0, 5.0], ["Calidad y precio", 4.9, 4.7, 4.8]];
+const f = v => v.toFixed(1).replace(".", ",");
+const col = ["#8B1D3D", "#C98B9C", "#D9A27E"];
+document.getElementById("catRows").innerHTML = CATS.map(c => `<tr><td><b>${c[0]}</b></td><td class="n">${f(c[1])}</td><td class="n">${f(c[2])}</td><td class="n">${f(c[3])}</td><td><div class="dp">${[1, 2, 3].map(i => `<i style="left:${(c[i] - 4.5) / 0.5 * 100}%;background:${col[i - 1]}"></i>`).join("")}</div></td></tr>`).join("");
+
+const EX = [["Lucía M.", 4, 6, 126], ["Tomás R.", 7, 8, 68], ["Camila y Joaquín", 9, 15, 392], ["Familia Ferreira", 16, 21, 318], ["Martín G.", 22, 24, 130], ["Sofía L.", 24, 26, 124], ["Diego P.", 26, 27, 60]];
+const occ = new Set(); EX.forEach(s => { for (let d = s[1]; d < s[2]; d++) occ.add(d); });
+let h = ["L", "M", "X", "J", "V", "S", "D"].map(d => `<div class="h">${d}</div>`).join("");
+const first = (new Date(2026, 8, 1).getDay() + 6) % 7; for (let i = 0; i < first; i++) h += "<div></div>";
+for (let d = 1; d <= 30; d++) h += `<div class="d ${occ.has(d) ? "o" : ""}">${d}</div>`;
+document.getElementById("cal").innerHTML = h;
+const p2 = n => String(n).padStart(2, "0");
+document.getElementById("stays").innerHTML = '<div class="rule"></div>' + EX.map(s => `<div class="li"><span>${s[0]}<small>${p2(s[1])}/09 al ${p2(s[2])}/09 · ${s[2] - s[1]} ${s[2] - s[1] === 1 ? "noche" : "noches"}</small></span><span>USD ${s[3]}</span></div>`).join("");
+
+const Y = [297, 312, 855, 710, 578, 487, 676, 676, 818, 1014, 1098, 507], MN = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+const fm = n => n.toLocaleString("es-AR");
+document.getElementById("plot").innerHTML = Y.map(v => `<div class="${v < 495 ? "lo" : ""}"><i style="height:${v / 1200 * 100}%"></i><b style="bottom:calc(${v / 1200 * 100}% + 4px)">${fm(v)}</b></div>`).join("") + `<span class="tr" style="bottom:${495 / 1200 * 100}%"><em>Tradicional: USD 495 por mes</em></span>`;
+document.getElementById("ml").innerHTML = MN.map(m => `<span>${m}</span>`).join("");
+
+const P = [["Ene", 11, 40, 440, 297], ["Feb", 11, 42, 462, 312], ["Mar", 23, 55, 1265, 855], ["Abr", 21, 50, 1050, 710], ["May", 19, 45, 855, 578], ["Jun", 16, 45, 720, 487], ["Jul", 20, 50, 1000, 676], ["Ago", 20, 50, 1000, 676], ["Sep", 22, 55, 1210, 818], ["Oct", 25, 60, 1500, 1014], ["Nov", 25, 65, 1625, 1098], ["Dic", 15, 50, 750, 507]];
+const diff = v => v >= 0 ? fm(v) : `<span class="muted">(${fm(-v)})</span>`;
+document.getElementById("proj").innerHTML = P.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">USD ${r[2]}</td><td class="n">${fm(r[3])}</td><td class="n acc"><b>${fm(r[4])}</b></td><td class="n">495</td><td class="n">${diff(r[4] - 495)}</td></tr>`).join("")
+  + `<tr style="font-weight:800"><td style="border-top:2px solid var(--ink)">Año</td><td class="n" style="border-top:2px solid var(--ink)">228</td><td style="border-top:2px solid var(--ink)"></td><td class="n" style="border-top:2px solid var(--ink)">11.877</td><td class="n acc" style="border-top:2px solid var(--ink)">8.029</td><td class="n" style="border-top:2px solid var(--ink)">5.940</td><td class="n" style="border-top:2px solid var(--ink)">2.089</td></tr>`;
+</script>
+</body>
+</html>
