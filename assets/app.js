@@ -99,7 +99,7 @@ const STEPS = [
   { w: "Todos los días", t: "Precio y calendario", h: "La tarifa correcta para cada noche.", p: "Ajustamos precios según temporada, día de la semana, eventos y anticipación. El calendario siempre al día para no perder noches.", l: ["Revisión de tarifas y estadías mínimas", "Precios especiales en fechas de alta demanda", "Bloqueo de fechas cuando querés usarlo"], o: "Si querés usar el departamento, nos avisás y bloqueamos las fechas." },
   { w: "Al reservar", t: "Llega la reserva", h: "Respuesta en menos de una hora.", p: "Respondemos consultas y confirmamos reservas al instante. Revisamos el perfil del huésped y le damos la bienvenida.", l: ["Respuesta al 100% de los mensajes", "Revisión del perfil y las reseñas del huésped", "Bienvenida con las normas de la casa"], o: "Nada. Te enterás en el reporte del mes." },
   { w: "48 horas antes", t: "Antes de la llegada", h: "Todo listo antes de que llegue.", p: "Registramos al huésped en el edificio cuando hace falta y le enviamos las instrucciones de llegada paso a paso.", l: ["Registro en recepción si el edificio lo pide", "Instrucciones de acceso y wifi", "Confirmación del horario de llegada"], o: "Nada." },
-  { w: "Día de llegada", t: "Check in", h: "Recibimos a cada huésped.", p: "Hacemos el check in en persona: lo esperamos en el departamento, le entregamos las llaves y le mostramos todo lo que necesita para su estadía.", l: ["Recepción en el departamento", "Entrega de llaves y recorrida", "Asistencia si algo falla durante la llegada"], o: "Nada. Nunca más una entrega de llaves." },
+  { w: "Día de llegada", t: "Check in", h: "Gestionamos cada llegada.", p: "Coordinamos el check in de punta a punta: horario, acceso al edificio e instrucciones claras para que el huésped entre sin complicaciones.", l: ["Coordinación del horario de llegada", "Instrucciones de acceso paso a paso", "Asistencia si algo falla durante la llegada"], o: "Nada. Nunca más una entrega de llaves." },
   { w: "Mientras se aloja", t: "Durante la estadía", h: "Disponibles a cualquier hora.", p: "Resolvemos dudas, recomendamos lugares y coordinamos cualquier arreglo. En estadías largas coordinamos el recambio de ropa de cama.", l: ["Atención por mensaje en cualquier horario", "Coordinación de técnicos si algo se rompe", "Recambio de ropa de cama en estadías largas"], o: "Solo te consultamos los arreglos que necesitan tu aprobación." },
   { w: "Día de salida", t: "Salida y limpieza", h: "Listo para el próximo huésped.", p: "Coordinamos la limpieza, gestionamos la lavandería de toda la ropa de cama y toallas, reponemos lo necesario y revisamos el estado del departamento después de cada estadía.", l: ["Limpieza profesional después de cada huésped", "Gestión de lavandería: ropa de cama y toallas", "Control del estado y reporte de daños"], o: "Nada. La limpieza la paga el huésped." },
   { w: "Después de la salida", t: "Reseña", h: "Cada reseña cuenta.", p: "Calificamos al huésped y respondemos su reseña. Las buenas calificaciones mejoran la posición del anuncio y permiten subir la tarifa.", l: ["Calificación del huésped", "Respuesta a los comentarios", "Seguimiento de las categorías a mejorar"], o: "Nada." },
@@ -118,9 +118,9 @@ function updateHs() {
 
 /* ───────── Resultados ───────── */
 const PHOTOS = {
-  obe: [["/assets/img/obe.jpg", "Living del Urban Nest Obelisco"]],
-  oll: [["/assets/img/oll/1.jpg", "Dormitorio con ventana del Urban Nest Olleros"], ["/assets/img/oll/2.jpg", "Cama y escritorio"], ["/assets/img/oll/3.jpg", "Escritorio y televisor"], ["/assets/img/oll/4.jpg", "Cocina equipada"], ["/assets/img/oll/5.jpg", "Baño completo"]],
-  acu: [["/assets/img/acu/1.jpg", "Living comedor con ventanal a la terraza del Urban Nest Acuña"], ["/assets/img/acu/2.jpg", "Living con escalera al dormitorio"], ["/assets/img/acu/3.jpg", "Comedor luminoso"], ["/assets/img/acu/4.jpg", "Dormitorio"], ["/assets/img/acu/5.jpg", "Cama doble"], ["/assets/img/acu/6.jpg", "Baño completo"]],
+  obe: [["/assets/img/obe/1.jpg", "Living del Urban Nest Obelisco"], ["/assets/img/obe/2.jpg", "Cocina integrada al living"]],
+  oll: [["/assets/img/oll/1.jpg", "Dormitorio con ventana del Urban Nest Olleros"], ["/assets/img/oll/2.jpg", "Cama y escritorio"], ["/assets/img/oll/3.jpg", "Escritorio de trabajo"]],
+  acu: [["/assets/img/acu/1.jpg", "Living comedor con ventanal a la terraza del Urban Nest Acuña"], ["/assets/img/acu/2.jpg", "Living con escalera al dormitorio"], ["/assets/img/acu/4.jpg", "Dormitorio en el entrepiso"]],
 };
 const PROPS = [
   { k: "obe", name: "Urban Nest Obelisco", where: "Studio en Av. Corrientes y Callao · 2 huéspedes", badge: "Favorito entre huéspedes", tag: "De anuncio nuevo a Favorito entre huéspedes en menos de un año.", rating: "4,95", reviews: 58, extra: "5,0 en limpieza, veracidad y comunicación" },
@@ -128,12 +128,15 @@ const PROPS = [
   { k: "acu", name: "Urban Nest Acuña", where: "Dúplex con terraza privada en Palermo · 4 huéspedes", badge: "Ideal para grupos", tag: "Un dúplex para grupos con 5,0 en llegada, comunicación y ubicación.", rating: "4,75", reviews: 40, extra: "4,9 en veracidad" },
 ];
 const img = (src, alt, eager) => `<img src="${src}" alt="${alt}" ${eager ? "" : 'loading="lazy"'} decoding="async">`;
-$("#storyMedia").innerHTML = PROPS.map((p, i) => `<div class="sm ${i ? "" : "on"}" data-k="${p.k}">${PHOTOS[p.k].map((f, j) => `<figure class="sm-f ${j ? "" : "on"}">${img(f[0], f[1])}</figure>`).join("")}<span class="sm-n">${PHOTOS[p.k].length > 1 ? `1 / ${PHOTOS[p.k].length}` : ""}</span></div>`).join("");
+$("#storyMedia").innerHTML = PROPS.map((p, i) => `<div class="sm ${i ? "" : "on"}" data-k="${p.k}">${PHOTOS[p.k].map((f, j) => `<figure class="sm-f ${j ? "" : "on"}">${img(f[0], f[1])}</figure>`).join("")}</div>`).join("");
 $("#stories").innerHTML = PROPS.map(p => `<article class="st" data-k="${p.k}"><div class="st-gal" aria-label="Fotos de ${p.name}">${PHOTOS[p.k].map(f => img(f[0], f[1])).join("")}</div><span class="badge">${p.badge}</span><h3>${p.name}</h3><p class="where">${p.where}</p><p class="tag">${p.tag}</p><div class="score"><b class="num">${p.rating}★</b><span>${p.reviews} reseñas<br>${p.extra}</span></div></article>`).join("");
 const media = $$(".sm");
 let activeK = "obe";
 const stObs = new IntersectionObserver(es => es.forEach(e => {
-  if (e.isIntersecting) { activeK = e.target.dataset.k; media.forEach(m => m.classList.toggle("on", m.dataset.k === activeK)); }
+  if (e.isIntersecting && e.target.dataset.k !== activeK) {
+    activeK = e.target.dataset.k;
+    media.forEach(m => { const on = m.dataset.k === activeK; m.classList.toggle("on", on); if (on) $$(".sm-f", m).forEach((f, j) => f.classList.toggle("on", j === 0)); });
+  }
 }), { rootMargin: "-45% 0px -45% 0px" });
 $$(".st").forEach(s => stObs.observe(s));
 // Las fotos del departamento activo pasan solas
@@ -143,15 +146,24 @@ if (!reduce) setInterval(() => {
   if (fs.length < 2 || m.getBoundingClientRect().bottom < 0) return;
   const i = fs.findIndex(f => f.classList.contains("on")), n = (i + 1) % fs.length;
   fs[i].classList.remove("on"); fs[n].classList.add("on");
-  $(".sm-n", m).textContent = `${n + 1} / ${fs.length}`;
 }, 3400);
 
 // Reseñas reales de Airbnb: { t: "texto", who: "Nombre", from: "Ciudad", when: "septiembre 2026", k: "obe" }
-const REVIEWS = [];
+const REVIEWS = [
+  { k: "obe", who: "Lucas", from: "Francisco Álvarez, Argentina", when: "mayo 2026", t: "Volvería a elegir este departamento porque es muy bonito, es más grande de lo que parece en las fotos y eso es un plus. La atención de los anfitriones fue muy gentil, está ubicado en una zona magnífica. Encontré el departamento en condiciones de limpieza destacables." },
+  { k: "acu", who: "Jesly", from: "Lima, Perú", when: "septiembre 2026", t: "Una excelente experiencia. La atención fue muy buena y estuvieron siempre pendientes de que estuviéramos cómodas. El lugar estaba muy limpio, ordenado y contaba con todo lo necesario." },
+  { k: "oll", who: "Kleber", from: "", when: "julio 2026", t: "Todo fue increíble. Valentín fue un anfitrión excelente, respondió rápidamente a las preguntas y dio todas las instrucciones de forma muy clara. El departamento es muy agradable y muy cómodo." },
+  { k: "obe", who: "Valeria", from: "Chile", when: "septiembre 2026", t: "Departamento ideal para 2 personas, ubicado en el centro de la ciudad, para quienes disfrutan de la experiencia urbana llena de vida y de fácil acceso a todo. Entorno seguro y buenos espacios." },
+  { k: "acu", who: "Wilmar", from: "Manizales, Colombia", when: "septiembre 2026", t: "La atención que Javier nos prestó fue maravillosa, una persona amable, cordial y servicial. Todo en su lugar y tal cual las fotos. Volveríamos sin dudarlo." },
+  { k: "oll", who: "Agostina", from: "Rosario, Argentina", when: "julio 2026", t: "Muy linda la zona, muy lindo el alojamiento y muy buena la comunicación con Valentín. Todo impecable." },
+  { k: "obe", who: "Shine", from: "Seattle, Estados Unidos", when: "diciembre 2025", t: "Ubicación inmejorable, cama cómoda y anfitrión amable que está disponible al instante y es servicial. El departamento es tal como se describe y tenía todo lo necesario para nuestra estadía." },
+  { k: "acu", who: "Amanda", from: "Río Grande, Argentina", when: "julio 2026", t: "La estadía estuvo muy bien, contaba con todas las comodidades y Javier un excelente anfitrión, siempre muy atento y respetuoso. El departamento estaba muy limpio y ordenado." },
+  { k: "oll", who: "Matías", from: "", when: "agosto 2026", t: "Un departamento muy bien ubicado para quienes estamos de paso unos días, cerca de zonas comerciales y de transporte público variado. Precio calidad muy bueno." },
+];
 if (REVIEWS.length) {
   const q = $("#quotes"); q.hidden = false;
   const nm = { obe: "Obelisco", oll: "Olleros", acu: "Acuña" };
-  q.innerHTML = `<h3 class="mid">Lo que escriben en sus reseñas.</h3><div class="q-track">${REVIEWS.map(r => `<figure class="q"><blockquote>“${r.t}”</blockquote><figcaption><b>${r.who}</b>${r.from ? ", " + r.from : ""} · ${nm[r.k]} · ${r.when}</figcaption></figure>`).join("")}</div>`;
+  q.innerHTML = `<div class="q-head"><h3 class="mid">En palabras de los huéspedes.</h3><p class="note">Reseñas de cinco estrellas publicadas en Airbnb. Algunas, traducidas por la plataforma.</p></div><div class="q-track">${REVIEWS.map(r => `<figure class="q"><span class="q-stars" aria-label="5 estrellas">★★★★★</span><blockquote>${r.t}</blockquote><figcaption><b>${r.who}</b>${r.from ? `<span>${r.from}</span>` : ""}<span>Urban Nest ${nm[r.k]} · ${r.when}</span></figcaption></figure>`).join("")}</div>`;
 }
 
 const CATS = [["Limpieza", 5.0, 4.8, 4.8], ["Veracidad", 5.0, 4.6, 4.9], ["Llegada", 4.9, 4.9, 5.0], ["Comunicación", 5.0, 5.0, 5.0], ["Ubicación", 4.9, 5.0, 5.0], ["Calidad y precio", 4.9, 4.7, 4.8]];

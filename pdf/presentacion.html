@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 @page{size:1280px 720px;margin:0}
-:root{--crimson:#8B1D3D;--wine:#5E1028;--rose:#E9A3B6;--rose2:#C98B9C;--sand:#D9A27E;--bg:#FAF6F2;--bg2:#F3ECE6;--ink:#1B1418;--muted:#6E6266;--line:#E3D8D1;--tint:#F7E8EC;--hero:linear-gradient(140deg,#8B1D3D 0%,#5E1028 100%)}
+:root{--crimson:#8B1D3D;--wine:#5E1028;--rose:#E9A3B6;--rose2:#C98B9C;--sand:#D9A27E;--bg:#FAF6F2;--bg2:#F3ECE6;--ink:#1B1418;--muted:#6E6266;--line:#E3D8D1;--tint:#F7E8EC;--hero:#5E1028}
 *{box-sizing:border-box}
 html,body{margin:0;background:#888}
 body{font-family:Inter,system-ui,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact;font-feature-settings:"tnum"}
@@ -15,7 +15,7 @@ body{font-family:Inter,system-ui,sans-serif;color:var(--ink);-webkit-print-color
 h1,h2,h3{margin:0;letter-spacing:-.035em;line-height:1.04;font-weight:800}
 p{margin:0}
 .k{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--crimson);display:flex;align-items:center;gap:10px;margin-bottom:14px}
-.k::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px rgba(139,29,61,.18)}
+
 h2{font-size:46px;max-width:20ch}
 h2 .soft{color:var(--muted)}
 .lead{color:var(--muted);font-size:18px;line-height:1.55;margin-top:14px;max-width:62ch}
@@ -23,7 +23,7 @@ h2 .soft{color:var(--muted)}
 .foot .l{display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink)}
 .foot img{width:18px}
 .dark{background:var(--hero);color:#fff}
-.dark .k{color:#F5B8C6}.dark .k::before{box-shadow:0 0 0 4px rgba(255,255,255,.15)}
+.dark .k{color:#F5B8C6}
 .dark .lead{color:#F1D6DE}
 .dark .foot{border-color:rgba(255,255,255,.2);color:#F1D6DE}.dark .foot .l{color:#fff}
 .num{font-variant-numeric:tabular-nums}
@@ -44,7 +44,8 @@ h2 .soft{color:var(--muted)}
 .cover h1 em{font-style:normal;color:#F5B8C6}
 .cover .l p{color:#F1D6DE;font-size:18px;margin-top:20px;max-width:34ch;line-height:1.5}
 .cover .l small{display:block;margin-top:40px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#F5B8C6}
-.cover .r{flex:1;background:url(../assets/img/obe.jpg) center 62%/cover}
+.cover .r{flex:1;background:#4B0C20;position:relative;overflow:hidden}
+.cover .r svg,.end .r svg{position:absolute;inset:0;width:100%;height:100%}
 
 /* 2 resumen */
 .sum{display:grid;grid-template-columns:420px 1fr;gap:64px;margin-top:6px}
@@ -88,7 +89,7 @@ h2 .soft{color:var(--muted)}
 
 /* 6 caso principal */
 .case{padding:0;display:flex}
-.case .ph{width:500px;background:url(../assets/img/obe.jpg) center/cover}
+.case .ph{width:500px;background:url(../assets/img/obe/1.jpg) center/cover}
 .case .tx{flex:1;padding:64px 64px 0}
 .case .score{display:flex;align-items:baseline;gap:22px;margin-top:30px}
 .case .score b{font-size:110px;font-weight:900;letter-spacing:-.06em;line-height:.85;color:var(--crimson)}
@@ -102,7 +103,7 @@ h2 .soft{color:var(--muted)}
 
 /* 7 dos casos */
 .two{display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:30px}
-.two .ph{height:230px;border-radius:22px;overflow:hidden;background:var(--hero);display:flex;align-items:center;justify-content:center;color:#F3D6DE}
+.two .ph{height:230px;border-radius:8px;overflow:hidden;background:var(--hero);display:flex;align-items:center;justify-content:center;color:#F3D6DE}
 .two .ph img{width:100%;height:100%;object-fit:cover}
 .two .badge{display:inline-block;margin-top:20px;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--crimson);background:var(--tint);padding:5px 11px;border-radius:99px}
 .two h3{font-size:28px;margin-top:10px}
@@ -119,6 +120,13 @@ h2 .soft{color:var(--muted)}
 .mosaic figcaption{position:absolute;left:12px;bottom:10px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(20,10,14,.5);padding:4px 10px;border-radius:99px}
 .mosaic .m1{grid-row:span 2}
 .mosaic .m2{grid-row:span 2}
+/* reseñas */
+.revs{display:grid;grid-template-columns:1fr 1fr;gap:26px 56px;margin-top:30px}
+.revs figure{margin:0;border-top:2px solid var(--crimson);padding-top:16px}
+.revs span{color:var(--crimson);letter-spacing:3px;font-size:12px}
+.revs blockquote{margin:8px 0 0;font-size:15.5px;line-height:1.5}
+.revs figcaption{margin-top:10px;font-size:12.5px;color:var(--muted);line-height:1.5}
+.revs figcaption b{color:var(--ink)}
 /* 8 valoran */
 .hl{display:flex;margin-top:30px;border-top:2px solid var(--ink)}
 .hl div{flex:1;padding:18px 18px 0 0}
@@ -144,7 +152,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 .cal .d.o{background:var(--crimson);color:#fff}
 .stays .li{padding:7px 0;font-size:13.5px}
 .stays small{display:block;color:var(--muted);font-size:11.5px}
-.paid{background:var(--hero);color:#fff;border-radius:22px;padding:22px 24px}
+.paid{background:var(--hero);color:#fff;border-radius:8px;padding:22px 24px}
 .paid small{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#F5D0DA}
 .paid b{display:block;font-size:52px;font-weight:900;letter-spacing:-.05em;line-height:1.05;margin-top:6px}
 .paid p{font-size:14px;color:#F5D0DA;margin-top:8px;line-height:1.45}
@@ -191,10 +199,10 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 /* 16 próximos pasos */
 .end{padding:0;display:flex}
 .end .l{flex:1;padding:44px 60px 0 72px}
-.end .r{width:430px;background:url(../assets/img/acu/1.jpg) center/cover;position:relative}
+.end .r{width:430px;background:#4B0C20;position:relative;overflow:hidden}
 .steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:7px}
 .steps li{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start;font-size:14.5px;color:#F1D6DE;line-height:1.45}
-.steps li span{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--wine);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
+.steps li span{color:#F5B8C6;font-weight:800;font-size:15px;padding-top:1px}
 .steps li b{color:#fff;display:block;font-size:16px}
 .wa{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22)}
 .wa h3{font-size:20px}
@@ -215,7 +223,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     <p>Gestión completa de departamentos en Airbnb, en Buenos Aires. Todo lo que necesitás saber antes de decidir.</p>
     <small>Presentación para propietarios · Octubre 2026</small>
   </div>
-  <div class="r"></div>
+  <div class="r"><svg id="ilCover" viewBox="0 0 720 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg></div>
 </section>
 
 <!-- 2 -->
@@ -267,7 +275,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     <div><i>Todos los días</i><h3>Precio y calendario</h3><p>Tarifas por temporada, día de la semana, eventos y anticipación.</p></div>
     <div><i>Al reservar</i><h3>Llega la reserva</h3><p>Respuesta en menos de una hora y revisión del perfil del huésped.</p></div>
     <div><i>48 horas antes</i><h3>Antes de la llegada</h3><p>Registro en el edificio e instrucciones de acceso paso a paso.</p></div>
-    <div><i>Día de llegada</i><h3>Check in</h3><p>Recibimos a cada huésped en el departamento y le entregamos las llaves.</p></div>
+    <div><i>Día de llegada</i><h3>Check in</h3><p>Coordinamos cada llegada con instrucciones claras de acceso.</p></div>
     <div><i>Mientras se aloja</i><h3>Durante la estadía</h3><p>Atención en cualquier horario y coordinación de arreglos.</p></div>
     <div><i>Día de salida</i><h3>Salida y limpieza</h3><p>Limpieza profesional, gestión de lavandería, reposición y control.</p></div>
     <div><i>Después</i><h3>Reseña</h3><p>Calificamos al huésped y respondemos cada comentario.</p></div>
@@ -287,7 +295,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
         <li>Precios dinámicos y manejo del calendario</li>
         <li>Anuncio optimizado: fotos profesionales y descripción estratégica</li>
         <li>Atención a huéspedes en cualquier horario, con respuesta en menos de una hora</li>
-        <li>Check in en persona y seguimiento de cada llegada</li>
+        <li>Gestión del check in y seguimiento de cada llegada</li>
         <li>Coordinación de limpieza y gestión de lavandería de ropa de cama y toallas</li>
         <li>Coordinación de mantenimiento y técnicos</li>
         <li>Reseñas, reporte de rendimiento y liquidación mensual</li>
@@ -350,17 +358,19 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 </section>
 
 
-<!-- galería -->
+
+
+<!-- reseñas -->
 <section class="s">
-  <p class="k">Por dentro</p>
-  <h2>Departamentos listos para recibir. <span class="soft">Fotos de nuestros anuncios.</span></h2>
-  <div class="mosaic">
-    <figure class="m1"><img src="../assets/img/acu/2.jpg" alt=""><figcaption>Acuña · living con escalera al dormitorio</figcaption></figure>
-    <figure class="m2"><img src="../assets/img/oll/2.jpg" alt=""><figcaption>Olleros · dormitorio</figcaption></figure>
-    <figure class="m3"><img src="../assets/img/acu/4.jpg" alt=""><figcaption>Acuña · dormitorio</figcaption></figure>
-    <figure class="m5"><img src="../assets/img/acu/3.jpg" alt=""><figcaption>Acuña · comedor</figcaption></figure>
+  <p class="k">Reseñas reales</p>
+  <h2>En palabras de los huéspedes.</h2>
+  <div class="revs">
+    <figure><span>★★★★★</span><blockquote>Volvería a elegir este departamento porque es muy bonito, es más grande de lo que parece en las fotos. La atención de los anfitriones fue muy gentil. Encontré el departamento en condiciones de limpieza destacables.</blockquote><figcaption><b>Lucas</b> · Francisco Álvarez, Argentina<br>Urban Nest Obelisco · mayo 2026</figcaption></figure>
+    <figure><span>★★★★★</span><blockquote>Valentín fue un anfitrión excelente, respondió rápidamente a las preguntas y dio todas las instrucciones de forma muy clara. El departamento es muy agradable y muy cómodo.</blockquote><figcaption><b>Kleber</b><br>Urban Nest Olleros · julio 2026</figcaption></figure>
+    <figure><span>★★★★★</span><blockquote>Una excelente experiencia. La atención fue muy buena y estuvieron siempre pendientes de que estuviéramos cómodas. El lugar estaba muy limpio, ordenado y contaba con todo lo necesario.</blockquote><figcaption><b>Jesly</b> · Lima, Perú<br>Urban Nest Acuña · septiembre 2026</figcaption></figure>
+    <figure><span>★★★★★</span><blockquote>Ubicación inmejorable, cama cómoda y anfitrión amable que está disponible al instante y es servicial. El departamento es tal como se describe.</blockquote><figcaption><b>Shine</b> · Seattle, Estados Unidos<br>Urban Nest Obelisco · diciembre 2025</figcaption></figure>
   </div>
-  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>00</span></div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Reseñas de cinco estrellas publicadas en Airbnb · 00</span></div>
 </section>
 
 <!-- 8 -->
@@ -536,7 +546,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       <div class="ct"><a href="https://wa.me/5491132126888">WhatsApp +54 9 11 3212 6888</a><a class="o" href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a></div>
     </div>
   </div>
-  <div class="r"></div>
+  <div class="r"><svg id="ilEnd" viewBox="0 0 430 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true"></svg></div>
   <div class="foot"><span class="l">Urban Nest · urban-nest-landing.vercel.app</span></div>
 </section>
 
@@ -564,6 +574,51 @@ const P = [["Ene", 11, 40, 440, 297], ["Feb", 11, 42, 462, 312], ["Mar", 23, 55,
 const diff = v => v >= 0 ? fm(v) : `<span class="muted">(${fm(-v)})</span>`;
 document.getElementById("proj").innerHTML = P.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">USD ${r[2]}</td><td class="n">${fm(r[3])}</td><td class="n acc"><b>${fm(r[4])}</b></td><td class="n">495</td><td class="n">${diff(r[4] - 495)}</td></tr>`).join("")
   + `<tr style="font-weight:800"><td style="border-top:2px solid var(--ink)">Año</td><td class="n" style="border-top:2px solid var(--ink)">228</td><td style="border-top:2px solid var(--ink)"></td><td class="n" style="border-top:2px solid var(--ink)">11.877</td><td class="n acc" style="border-top:2px solid var(--ink)">8.029</td><td class="n" style="border-top:2px solid var(--ink)">5.940</td><td class="n" style="border-top:2px solid var(--ink)">2.089</td></tr>`;
+// Ilustraciones de línea en la paleta de marca
+function rnd(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function cover(svg){
+  const W = 720, H = 720, r = rnd(12), base = 560; let h = "";
+  h += `<circle cx="560" cy="170" r="74" fill="none" stroke="#D9A27E" stroke-width="1.2" opacity=".7"/>`;
+  for (let layer = 0; layer < 2; layer++) {
+    let x = -20;
+    while (x < W) {
+      const w = 46 + r() * 70, bh = (layer ? 150 : 90) + r() * (layer ? 230 : 160), y = base - bh - (layer ? 0 : 50);
+      const stroke = layer ? "rgba(245,208,218,.55)" : "rgba(245,208,218,.22)";
+      h += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="${(base - y).toFixed(1)}" fill="${layer ? "#4B0C20" : "none"}" stroke="${stroke}" stroke-width="1"/>`;
+      if (layer) for (let yy = y + 14; yy < base - 18; yy += 18) for (let xx = x + 8; xx < x + w - 10; xx += 13) {
+        const lit = r() < 0.07;
+        h += `<rect x="${xx.toFixed(1)}" y="${yy.toFixed(1)}" width="6" height="8" fill="${lit ? "#D9A27E" : "none"}" stroke="rgba(245,208,218,${lit ? 0 : .28})" stroke-width=".7"/>`;
+      }
+      x += w + 6 + r() * 14;
+    }
+  }
+  // Obelisco
+  const cx = 330;
+  h += `<polygon points="${cx - 15},${base} ${cx - 8},${base - 380} ${cx},${base - 402} ${cx + 8},${base - 380} ${cx + 15},${base}" fill="#5E1028" stroke="#F7E8EC" stroke-width="1.4"/>`;
+  h += `<line x1="${cx}" y1="${base - 402}" x2="${cx}" y2="${base}" stroke="rgba(247,232,236,.35)" stroke-width=".8"/>`;
+  h += `<line x1="0" y1="${base}" x2="${W}" y2="${base}" stroke="#F7E8EC" stroke-width="1.2"/>`;
+  for (let i = 1; i < 6; i++) h += `<line x1="${cx - i * 70}" y1="${base}" x2="${cx - i * 260}" y2="${H}" stroke="rgba(245,208,218,.18)" stroke-width="1"/><line x1="${cx + i * 70}" y1="${base}" x2="${cx + i * 260}" y2="${H}" stroke="rgba(245,208,218,.18)" stroke-width="1"/>`;
+  h += `<text x="40" y="690" fill="rgba(245,208,218,.6)" font-family="Inter" font-size="12" letter-spacing="3">BUENOS AIRES</text>`;
+  svg.innerHTML = h;
+}
+function facade(svg){
+  const W = 430, H = 720, r = rnd(4); let h = "";
+  const x0 = 70, x1 = 370, top = 120, floorH = 82;
+  h += `<rect x="${x0}" y="${top}" width="${x1 - x0}" height="${H - top}" fill="#5E1028" stroke="#F7E8EC" stroke-width="1.2"/>`;
+  h += `<rect x="${x0 - 12}" y="${top - 16}" width="${x1 - x0 + 24}" height="16" fill="none" stroke="#F7E8EC" stroke-width="1.2"/>`;
+  for (let f = 0; f < 7; f++) {
+    const y = top + 26 + f * floorH;
+    for (let c = 0; c < 3; c++) {
+      const wx = x0 + 28 + c * 92, lit = f === 2 && c === 1;
+      h += `<rect x="${wx}" y="${y}" width="58" height="56" fill="${lit ? "#D9A27E" : "none"}" stroke="rgba(247,232,236,.7)" stroke-width="1"/>`;
+      h += `<line x1="${wx + 29}" y1="${y}" x2="${wx + 29}" y2="${y + 56}" stroke="${lit ? "#5E1028" : "rgba(247,232,236,.45)"}" stroke-width="1"/>`;
+      h += `<rect x="${wx - 6}" y="${y + 50}" width="70" height="18" fill="none" stroke="rgba(247,232,236,.5)" stroke-width="1"/>`;
+      for (let k = 0; k < 7; k++) h += `<line x1="${wx - 6 + k * 11.6}" y1="${y + 50}" x2="${wx - 6 + k * 11.6}" y2="${y + 68}" stroke="rgba(247,232,236,.35)" stroke-width=".8"/>`;
+    }
+  }
+  svg.innerHTML = h;
+}
+cover(document.getElementById("ilCover")); facade(document.getElementById("ilEnd"));
 document.querySelectorAll(".s").forEach((sec, i) => { const sp = sec.querySelector(".foot span:last-child:not(.l)"); if (sp) sp.textContent = sp.textContent.replace(/\d{2}$/, String(i + 1).padStart(2, "0")); });
 </script>
 </body>
