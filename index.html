@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://ezocccljyweieyafndhb.supabase.co">
+<script type="importmap">{"imports":{"three":"/vendor/three.module.min.js","three/addons/":"/vendor/jsm/"}}</script>
 <link rel="modulepreload" href="/vendor/three.module.min.js">
 <script>
   // Tema antes de pintar: elección guardada o la hora del visitante (de 7 a 19, día).
@@ -70,18 +71,18 @@
 <!-- RECORRIDO 3D -->
 <section class="tour" id="tour" aria-label="Recorrido por Buenos Aires y un departamento Urban Nest">
   <div class="tour-stick">
-    <canvas id="tourCanvas" aria-hidden="true"></canvas>
+    <div class="tour-stage"><canvas id="tourCanvas" aria-hidden="true"></canvas>
     <div class="tour-fallback" aria-hidden="true"></div>
     <div class="tour-shade" aria-hidden="true"></div>
-    <div class="tour-flash" id="tourFlash" aria-hidden="true"></div>
+    <div class="tour-flash" id="tourFlash" aria-hidden="true"></div><p class="tour-cap" id="tourCap" aria-hidden="true"></p></div>
 
     <div class="pin" data-anchor="obelisco" data-from="0.13" data-to="0.27"><span class="pin-dot"></span><span class="pin-txt">Obelisco</span></div>
     <div class="pin pin-un" data-anchor="obe" data-from="0.26" data-to="0.5"><span class="pin-dot"></span><span class="pin-txt"><b>Urban Nest Obelisco</b>Corrientes y Callao · 4,95★</span></div>
     <div class="pin pin-un" data-anchor="acu" data-from="0.26" data-to="0.44"><span class="pin-dot"></span><span class="pin-txt"><b>Urban Nest Acuña</b>Palermo · 4,75★</span></div>
     <div class="pin pin-un" data-anchor="oll" data-from="0.26" data-to="0.44"><span class="pin-dot"></span><span class="pin-txt"><b>Urban Nest Olleros</b>Las Cañitas · 4,83★</span></div>
 
-    <div class="pin pin-room" data-anchor="bed" data-from="0.66" data-to="0.75"><span class="pin-dot"></span><span class="pin-txt"><b>Blanquería de hotel</b>Cambio completo y amenities en cada estadía</span></div>
-    <div class="pin pin-room" data-anchor="door" data-from="0.75" data-to="0.83"><span class="pin-dot"></span><span class="pin-txt"><b>Ingreso autónomo</b>Cerradura inteligente, a cualquier hora</span></div>
+    <div class="pin pin-room" data-anchor="bed" data-from="0.66" data-to="0.75"><span class="pin-dot"></span><span class="pin-txt"><b>Lavandería gestionada</b>Ropa de cama y toallas lavadas y recambiadas en cada estadía</span></div>
+    <div class="pin pin-room" data-anchor="door" data-from="0.75" data-to="0.83"><span class="pin-dot"></span><span class="pin-txt"><b>Check in en persona</b>Recibimos a cada huésped en el departamento</span></div>
     <div class="pin pin-room" data-anchor="phone" data-from="0.83" data-to="0.9"><span class="pin-dot"></span><span class="pin-txt"><b>Respuesta en menos de 1 hora</b>Al 100% de los mensajes</span></div>
     <div class="pin pin-room" data-anchor="laptop" data-from="0.88" data-to="0.925"><span class="pin-dot"></span><span class="pin-txt"><b>Precios que cambian cada día</b>Temporada, día de la semana y eventos</span></div>
     <div class="pin pin-room" data-anchor="sofa" data-from="0.92" data-to="0.955"><span class="pin-dot"></span><span class="pin-txt"><b>Limpieza profesional</b>Y control después de cada huésped</span></div>
@@ -95,6 +96,7 @@
         <a class="btn btn-glass" href="/Urban_Nest_Presentacion_Propietarios.pdf" download data-pdf="hero"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Presentación en PDF</a>
       </div>
       <p class="scroll-hint" aria-hidden="true"><span class="mouse"><i></i></span>Deslizá y recorré Buenos Aires con nosotros</p>
+      <dl class="tp-facts hero-facts"><div><dt>4,86★</dt><dd>en 121 reseñas</dd></div><div><dt>&lt;1 h</dt><dd>de respuesta</dd></div><div><dt>4 años</dt><dd>en Airbnb</dd></div></dl>
     </div>
 
     <div class="tp" data-from="0.11" data-to="0.25">
@@ -130,11 +132,11 @@
     </div>
 
     <ol class="chapters" aria-hidden="true">
-      <li data-from="0" data-to="0.27">La ciudad</li>
-      <li data-from="0.27" data-to="0.45">Departamentos</li>
-      <li data-from="0.45" data-to="0.62">La ventana</li>
-      <li data-from="0.62" data-to="0.955">Adentro</li>
-      <li data-from="0.955" data-to="2">Para vos</li>
+      <li data-from="0" data-to="0.27" data-cap="Buenos Aires, de día y de noche">La ciudad</li>
+      <li data-from="0.27" data-to="0.45" data-cap="Nuestros departamentos: el centro, Palermo y Las Cañitas">Departamentos</li>
+      <li data-from="0.45" data-to="0.62" data-cap="Entramos al Urban Nest Obelisco">La ventana</li>
+      <li data-from="0.62" data-to="0.955" data-cap="Check in, lavandería, limpieza y precios: lo hacemos nosotros">Adentro</li>
+      <li data-from="0.955" data-to="2" data-cap="Vos recibís el reporte y la transferencia">Para vos</li>
     </ol>
     <div class="tour-bar" aria-hidden="true"><i id="tourBar"></i></div>
   </div>
@@ -161,11 +163,7 @@
     <h2 class="rv big" id="resT">Calificaciones altas desde el primer mes. <span class="soft">Reseña por reseña.</span></h2>
   </div>
   <div class="story wrap">
-    <div class="story-media" aria-hidden="true">
-      <div class="sm on" data-k="obe"><img src="/assets/img/obe.jpg" alt="" loading="lazy" width="1400" height="1867"></div>
-      <div class="sm sm-art" data-k="oll"><div class="sm-art-in"><span>Las Cañitas</span><svg viewBox="0 0 200 160" aria-hidden="true"><path d="M30 150V60h50v90M80 150V30h60v120M140 150V80h40v70" fill="none" stroke="currentColor" stroke-width="3"/><path d="M95 50h10M115 50h10M95 70h10M115 70h10M95 90h10M115 90h10M45 80h8M60 80h8M45 100h8M60 100h8M152 100h8M152 120h8" stroke="currentColor" stroke-width="5"/></svg></div></div>
-      <div class="sm" data-k="acu"><img src="/assets/img/acu.jpg" alt="" loading="lazy" width="1000" height="631"></div>
-    </div>
+    <div class="story-media" id="storyMedia" aria-hidden="true"></div>
     <div class="story-steps" id="stories"></div>
   </div>
 
@@ -174,6 +172,7 @@
     <h3 class="rv mid">Lo que más valoran, por categoría.</h3>
     <div class="dots rv" id="dotplot"></div>
     <p class="note">Calificaciones por categoría en Airbnb al 3/10/2026, de 4,5 a 5,0.</p>
+    <div class="quotes" id="quotes" hidden></div>
   </div>
 </section>
 

@@ -44,7 +44,7 @@ h2 .soft{color:var(--muted)}
 .cover h1 em{font-style:normal;color:#F5B8C6}
 .cover .l p{color:#F1D6DE;font-size:18px;margin-top:20px;max-width:34ch;line-height:1.5}
 .cover .l small{display:block;margin-top:40px;font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#F5B8C6}
-.cover .r{flex:1;background:url(img/obelisco-night.jpg) center/cover}
+.cover .r{flex:1;background:url(../assets/img/obe.jpg) center 62%/cover}
 
 /* 2 resumen */
 .sum{display:grid;grid-template-columns:420px 1fr;gap:64px;margin-top:6px}
@@ -112,6 +112,13 @@ h2 .soft{color:var(--muted)}
 .two .sc b{font-size:46px;font-weight:900;letter-spacing:-.05em;color:var(--crimson);line-height:1}
 .two .sc span{color:var(--muted);font-size:14px}
 
+/* galería */
+.mosaic{display:grid;grid-template-columns:1.35fr 1fr 1fr;grid-template-rows:208px 208px;gap:12px;margin-top:22px}
+.mosaic figure{margin:0;position:relative;border-radius:18px;overflow:hidden}
+.mosaic img{width:100%;height:100%;object-fit:cover;display:block}
+.mosaic figcaption{position:absolute;left:12px;bottom:10px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(20,10,14,.5);padding:4px 10px;border-radius:99px}
+.mosaic .m1{grid-row:span 2}
+.mosaic .m2{grid-row:span 2}
 /* 8 valoran */
 .hl{display:flex;margin-top:30px;border-top:2px solid var(--ink)}
 .hl div{flex:1;padding:18px 18px 0 0}
@@ -184,7 +191,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
 /* 16 próximos pasos */
 .end{padding:0;display:flex}
 .end .l{flex:1;padding:44px 60px 0 72px}
-.end .r{width:430px;background:url(img/room-night.jpg) center/cover;position:relative}
+.end .r{width:430px;background:url(../assets/img/acu/1.jpg) center/cover;position:relative}
 .steps{list-style:none;margin:18px 0 0;padding:0;display:grid;gap:7px}
 .steps li{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:start;font-size:14.5px;color:#F1D6DE;line-height:1.45}
 .steps li span{width:30px;height:30px;border-radius:50%;background:#fff;color:var(--wine);font-weight:800;display:flex;align-items:center;justify-content:center;font-size:13px}
@@ -220,7 +227,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       <p class="lead">Nos ocupamos del departamento de punta a punta. Vos recibís un reporte claro y la transferencia todos los meses.</p>
     </div>
     <dl>
-      <div><dt>Qué hacemos</dt><dd>Precios, anuncio, huéspedes, ingreso autónomo, limpieza, mantenimiento, reseñas, reporte y liquidación.</dd></div>
+      <div><dt>Qué hacemos</dt><dd>Precios, anuncio, huéspedes, check in, limpieza, lavandería, mantenimiento, reseñas, reporte y liquidación.</dd></div>
       <div><dt>Cuánto rinde</dt><dd>En un monoambiente céntrico, <b>USD 8.029 al año</b> para el propietario frente a <b>USD 5.940</b> de un alquiler tradicional: <b>35% más</b>.</dd></div>
       <div><dt>Cuánto cobramos</dt><dd><b>20% de lo que ingresa</b>, después de la tarifa de servicio de Airbnb (15,5%). La limpieza la paga el huésped.</dd></div>
       <div><dt>Cómo cobrás</dt><dd>Liquidación mensual con el detalle de cada reserva, <b>en dólares o en pesos</b>.</dd></div>
@@ -260,9 +267,9 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     <div><i>Todos los días</i><h3>Precio y calendario</h3><p>Tarifas por temporada, día de la semana, eventos y anticipación.</p></div>
     <div><i>Al reservar</i><h3>Llega la reserva</h3><p>Respuesta en menos de una hora y revisión del perfil del huésped.</p></div>
     <div><i>48 horas antes</i><h3>Antes de la llegada</h3><p>Registro en el edificio e instrucciones de acceso paso a paso.</p></div>
-    <div><i>Día de llegada</i><h3>Ingreso autónomo</h3><p>Caja de seguridad o cerradura inteligente, a cualquier hora.</p></div>
+    <div><i>Día de llegada</i><h3>Check in</h3><p>Recibimos a cada huésped en el departamento y le entregamos las llaves.</p></div>
     <div><i>Mientras se aloja</i><h3>Durante la estadía</h3><p>Atención en cualquier horario y coordinación de arreglos.</p></div>
-    <div><i>Día de salida</i><h3>Salida y limpieza</h3><p>Limpieza profesional, blanquería de hotel, reposición y control.</p></div>
+    <div><i>Día de salida</i><h3>Salida y limpieza</h3><p>Limpieza profesional, gestión de lavandería, reposición y control.</p></div>
     <div><i>Después</i><h3>Reseña</h3><p>Calificamos al huésped y respondemos cada comentario.</p></div>
     <div><i>Cada mes</i><h3>Reporte y liquidación</h3><p>Ocupación, tarifa, reseñas, gastos y el total a transferir.</p></div>
   </div>
@@ -280,8 +287,8 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
         <li>Precios dinámicos y manejo del calendario</li>
         <li>Anuncio optimizado: fotos profesionales y descripción estratégica</li>
         <li>Atención a huéspedes en cualquier horario, con respuesta en menos de una hora</li>
-        <li>Ingreso autónomo y seguimiento de cada llegada</li>
-        <li>Coordinación de limpieza, blanquería y amenities entre estadías</li>
+        <li>Check in en persona y seguimiento de cada llegada</li>
+        <li>Coordinación de limpieza y gestión de lavandería de ropa de cama y toallas</li>
         <li>Coordinación de mantenimiento y técnicos</li>
         <li>Reseñas, reporte de rendimiento y liquidación mensual</li>
       </ul>
@@ -323,7 +330,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   <h2>Cada departamento, su huésped. <span class="soft">El mismo estándar.</span></h2>
   <div class="two">
     <div>
-      <div class="ph"><svg width="190" viewBox="0 0 200 160" aria-hidden="true"><path d="M30 150V60h50v90M80 150V30h60v120M140 150V80h40v70" fill="none" stroke="currentColor" stroke-width="3"/><path d="M95 50h10M115 50h10M95 70h10M115 70h10M95 90h10M115 90h10M45 80h8M60 80h8M45 100h8M60 100h8M152 100h8M152 120h8" stroke="currentColor" stroke-width="5"/></svg></div>
+      <div class="ph"><img src="../assets/img/oll/1.jpg" alt="" style="object-position:center 40%"></div>
       <span class="badge">En crecimiento</span>
       <h3>Urban Nest Olleros</h3>
       <p class="w">Suite con entrada independiente en Las Cañitas · 2 huéspedes</p>
@@ -331,7 +338,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       <div class="sc"><b>4,83★</b><span>23 reseñas</span></div>
     </div>
     <div>
-      <div class="ph"><img src="../assets/img/acu.jpg" alt=""></div>
+      <div class="ph"><img src="../assets/img/acu/1.jpg" alt=""></div>
       <span class="badge">Ideal para grupos</span>
       <h3>Urban Nest Acuña</h3>
       <p class="w">Dúplex con terraza privada en Palermo · 4 huéspedes</p>
@@ -340,6 +347,20 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     </div>
   </div>
   <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Calificaciones en Airbnb al 3/10/2026 · 07</span></div>
+</section>
+
+
+<!-- galería -->
+<section class="s">
+  <p class="k">Por dentro</p>
+  <h2>Departamentos listos para recibir. <span class="soft">Fotos de nuestros anuncios.</span></h2>
+  <div class="mosaic">
+    <figure class="m1"><img src="../assets/img/acu/2.jpg" alt=""><figcaption>Acuña · living con escalera al dormitorio</figcaption></figure>
+    <figure class="m2"><img src="../assets/img/oll/2.jpg" alt=""><figcaption>Olleros · dormitorio</figcaption></figure>
+    <figure class="m3"><img src="../assets/img/acu/4.jpg" alt=""><figcaption>Acuña · dormitorio</figcaption></figure>
+    <figure class="m5"><img src="../assets/img/acu/3.jpg" alt=""><figcaption>Acuña · comedor</figcaption></figure>
+  </div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>00</span></div>
 </section>
 
 <!-- 8 -->
@@ -472,7 +493,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       <div class="li"><b>Cocina y electro</b><em>USD 830</em><small>Heladera, microondas, pava, tostadora, vajilla y batería</small></div>
       <div class="li"><b>Living y comedor</b><em>USD 950</em><small>Sillón, Smart TV 43", desayunador y cortina roller</small></div>
       <div class="li"><b>Dormitorio y baño</b><em>USD 660</em><small>Sommier queen, mesitas, blackout y set de baño</small></div>
-      <div class="li"><b>Textiles y extras</b><em>USD 575</em><small>Blanquería de hotel, edredón, cerradura inteligente y plancha</small></div>
+      <div class="li"><b>Textiles y extras</b><em>USD 575</em><small>Juego de blanquería, edredón, toallas y plancha</small></div>
       <div class="li"><b>Puesta a punto</b><em>USD 150</em><small>Limpieza profunda y service de aire acondicionado</small></div>
       <div class="li tot" style="border-bottom:0"><b>Total estimado</b><em>USD 3.165</em></div>
     </div>
@@ -543,6 +564,7 @@ const P = [["Ene", 11, 40, 440, 297], ["Feb", 11, 42, 462, 312], ["Mar", 23, 55,
 const diff = v => v >= 0 ? fm(v) : `<span class="muted">(${fm(-v)})</span>`;
 document.getElementById("proj").innerHTML = P.map(r => `<tr><td>${r[0]}</td><td class="n">${r[1]}</td><td class="n">USD ${r[2]}</td><td class="n">${fm(r[3])}</td><td class="n acc"><b>${fm(r[4])}</b></td><td class="n">495</td><td class="n">${diff(r[4] - 495)}</td></tr>`).join("")
   + `<tr style="font-weight:800"><td style="border-top:2px solid var(--ink)">Año</td><td class="n" style="border-top:2px solid var(--ink)">228</td><td style="border-top:2px solid var(--ink)"></td><td class="n" style="border-top:2px solid var(--ink)">11.877</td><td class="n acc" style="border-top:2px solid var(--ink)">8.029</td><td class="n" style="border-top:2px solid var(--ink)">5.940</td><td class="n" style="border-top:2px solid var(--ink)">2.089</td></tr>`;
+document.querySelectorAll(".s").forEach((sec, i) => { const sp = sec.querySelector(".foot span:last-child:not(.l)"); if (sp) sp.textContent = sp.textContent.replace(/\d{2}$/, String(i + 1).padStart(2, "0")); });
 </script>
 </body>
 </html>

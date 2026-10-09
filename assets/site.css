@@ -18,6 +18,7 @@
   color-scheme:dark;
 }
 *,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth;scroll-padding-top:calc(var(--hdr) + 12px);-webkit-text-size-adjust:100%}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:clip;transition:background-color .6s var(--ease),color .6s var(--ease)}
@@ -418,3 +419,64 @@ input[type=range]{flex:1;accent-color:var(--crimson);height:40px}
 .mbar-wa{width:50px;padding:0;flex:none}
 .mbar-wa svg{width:22px;height:22px}
 @media (min-width:900px){.mbar{display:none}}
+
+/* Galerías de fotos reales */
+.sm-f{position:absolute;inset:0;margin:0;opacity:0;transition:opacity 1.1s var(--ease)}
+.sm-f.on{opacity:1}
+.sm-f img{width:100%;height:100%;object-fit:cover}
+.sm-n{position:absolute;right:14px;bottom:14px;font-size:12px;font-weight:700;color:#fff;background:rgba(20,10,14,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:5px 10px;border-radius:99px}
+.sm-n:empty{display:none}
+.st-gal{display:none}
+.hero-facts{display:none}
+.tour-stage{position:absolute;inset:0}
+.tour-cap{display:none}
+
+/* Reseñas */
+.quotes{margin-top:64px}
+.q-track{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;margin-top:24px;padding-bottom:10px;scrollbar-width:thin}
+.q{flex:none;width:min(84vw,420px);margin:0;padding:24px;background:var(--panel);border-radius:var(--r-lg);box-shadow:var(--shadow);scroll-snap-align:start}
+.q blockquote{margin:0;font-size:17px;line-height:1.55}
+.q figcaption{margin-top:14px;font-size:13px;color:var(--muted)}
+.q figcaption b{color:var(--ink)}
+
+/* Mobile: portada 3D que se reproduce sola y secciones en flujo normal */
+@media (max-width:860px){
+  .tour{height:auto}
+  .tour-stick{position:relative;height:auto;overflow:visible}
+  .tour-stage{position:relative;inset:auto;height:min(62svh,540px);overflow:hidden}
+  .tour-shade{background:linear-gradient(180deg,color-mix(in srgb,var(--bg) 55%,transparent) 0%,transparent 22%,transparent 72%,var(--bg) 100%)}
+  .pin,.chapters,.tour-bar,.scroll-hint{display:none}
+  .tp{display:none}
+  .tp-hero{display:block;position:static;opacity:1;visibility:visible;transform:none;max-width:none;padding:4px 20px 0;transition:none}
+  .tp-hero h1{font-size:clamp(38px,11vw,56px)}
+  .hero-facts{display:flex;gap:22px;margin-top:26px;padding-top:18px;border-top:1px solid var(--line)}
+  .hero-facts dt{font-size:26px}
+  .hero-facts dd{font-size:13px}
+  .tour-cap{display:block;position:absolute;left:16px;right:16px;bottom:30px;margin:0;font-size:14px;font-weight:600;line-height:1.35;color:var(--ink);opacity:0;transform:translateY(8px)}
+  .tour-cap.in{animation:capIn .7s var(--ease) forwards}
+  @keyframes capIn{to{opacity:1;transform:none}}
+  .tour-cap::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px;vertical-align:1px;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+
+  .hs{height:auto}
+  .hs-stick{position:static;height:auto;overflow:visible;padding:88px 0 24px;display:block}
+  .hs-track{overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:14px;scrollbar-width:none;transform:none!important}
+  .hs-track::-webkit-scrollbar{display:none}
+  .hs-card{scroll-snap-align:center}
+  .hs-rail{margin-left:20px;margin-right:20px}
+
+  .story{grid-template-columns:minmax(0,1fr)}
+  .story-steps{min-width:0}
+  .story-media{display:none}
+  .st{min-height:0;padding:30px 0 36px;border-bottom:1px solid var(--line)}
+  .st-gal{display:flex;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;margin:0 -20px 20px;padding:0 20px;scrollbar-width:none}
+  .st-gal::-webkit-scrollbar{display:none}
+  .st-gal img{flex:none;width:80vw;height:60vw;object-fit:cover;border-radius:18px;scroll-snap-align:center}
+  .st-gal img:only-child{width:100%;height:110vw}
+  .st .score b{font-size:64px}
+
+  .month{height:auto;margin-top:80px}
+  .month-stick{position:static;min-height:0;padding:0 20px}
+  .rc-list{display:grid!important}
+  .month .note{display:block!important}
+  .res-sec,.num-sec,.sim-sec,.cmp-sec,.setup-sec,.start-sec,.contact-sec{padding-top:88px}
+}
