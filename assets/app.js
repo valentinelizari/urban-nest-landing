@@ -66,8 +66,10 @@ const inRange = (el, p) => p >= +el.dataset.from && p < +el.dataset.to;
   }
 })();
 
+const RC = new Map();
+const R = el => RC.get(el) || el.getBoundingClientRect();
 function tourProgress() {
-  const r = tourEl.getBoundingClientRect();
+  const r = R(tourEl);
   return clamp01(-r.top / (r.height - innerHeight));
 }
 const cap = $("#tourCap");
@@ -110,8 +112,8 @@ hsTrack.innerHTML = STEPS.map((s, i) => `<li class="hs-card"><span class="n">0${
 hsTrack.addEventListener("scroll", () => { if (isMobile()) hsBar.style.transform = `scaleX(${hsTrack.scrollLeft / Math.max(1, hsTrack.scrollWidth - hsTrack.clientWidth)})`; }, { passive: true });
 function updateHs() {
   if (isMobile()) { hsTrack.style.transform = ""; return; }
-  const r = hsEl.getBoundingClientRect(), p = clamp01(-r.top / (r.height - innerHeight));
-  const max = hsTrack.scrollWidth - innerWidth;
+  const r = R(hsEl), p = clamp01(-r.top / (r.height - innerHeight));
+  const max = hsMax;
   hsTrack.style.transform = `translate3d(${-p * Math.max(0, max)}px,0,0)`;
   hsBar.style.transform = `scaleX(${p})`;
 }
@@ -176,7 +178,7 @@ $("#dotplot").innerHTML = `<div class="dots-axis"><span></span><div><span>4,5</s
 const YEAR = [297, 312, 855, 710, 578, 487, 676, 676, 818, 1014, 1098, 507];
 const MN = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 const yMax = 1200;
-$("#yearBars").innerHTML = `<div class="plot">${YEAR.map((v, i) => `<div class="col ${v < 495 ? "low" : ""}"><i style="height:${v / yMax * 100}%;transition-delay:${i * 60}ms"></i><b style="bottom:calc(${v / yMax * 100}% + 6px);transition-delay:${600 + i * 60}ms">${v.toLocaleString("es-AR")}</b></div>`).join("")}<div class="trad" style="bottom:${495 / yMax * 100}%"><em>Tradicional: USD 495 por mes</em></div></div><div class="mlabels">${MN.map(m => `<span>${m}</span>`).join("")}</div>`;
+$("#yearBars").innerHTML = `<div class="plot">${YEAR.map((v, i) => `<div class="col ${v < 495 ? "low" : ""}"><i style="height:${v / yMax * 100}%;transition-delay:${i * 60}ms"></i><b style="bottom:calc(${v / yMax * 100}% + 6px);transition-delay:${600 + i * 60}ms">${v.toLocaleString("es-AR")}</b></div>`).join("")}<div class="trad" style="bottom:${495 / yMax * 100}%"><em>Alquiler tradicional: USD 495</em></div></div><div class="mlabels">${MN.map(m => `<span>${m}</span>`).join("")}</div>`;
 
 // Mes de ejemplo
 const EX = [["Lucía M.", 4, 6, 126], ["Tomás R.", 7, 8, 68], ["Camila y Joaquín", 9, 15, 392], ["Familia Ferreira", 16, 21, 318], ["Martín G.", 22, 24, 130], ["Sofía L.", 24, 26, 124], ["Diego P.", 26, 27, 60]];
@@ -204,7 +206,7 @@ new IntersectionObserver(([e]) => {
   requestAnimationFrame(step);
 }, { threshold: 0.35 }).observe(monthEl);
 function updateMonth() {
-  const r = monthEl.getBoundingClientRect();
+  const r = R(monthEl);
   const p = isMobile() ? Math.max(0, monthAuto) : clamp01((-r.top) / (r.height - innerHeight) * 1.05);
   const fill = clamp01(p / 0.72), stays = Math.floor(fill * EX.length + 0.0001);
   let nights = 0, gross = 0;
@@ -284,17 +286,28 @@ const CMP = [
 $("#cmp").innerHTML = `<div class="cmp-r cmp-h" role="row"><span role="columnheader"></span><span class="a" role="columnheader">Alquiler tradicional</span><span class="b" role="columnheader">Con Urban Nest</span></div>` +
   CMP.map(r => `<div class="cmp-r rv" role="row"><span class="k" role="rowheader">${r[0]}</span><span class="a" role="cell">${r[1]}</span><span class="b" role="cell">${r[2]}</span></div>`).join("");
 
-const KIT = [["Cocina y electro", "Heladera, microondas, pava, tostadora, vajilla y batería", 830], ["Living y comedor", "Sillón, Smart TV 43\", desayunador y cortina roller", 950], ["Dormitorio y baño", "Sommier queen, mesitas, blackout y set de baño", 660], ["Textiles y extras", "Juego de blanquería, edredón, toallas y plancha", 575], ["Puesta a punto", "Limpieza profunda y service de aire acondicionado", 150]];
-$("#kit").innerHTML = KIT.map(k => `<li><b>${k[0]}</b><span>${k[1]}</span><em>${usd(k[2])}</em></li>`).join("") + `<li class="tot"><b>Total estimado</b><em>${usd(3165)}</em><span>Precios de referencia de mercado.</span></li>`;
+// Equipamiento: precios publicados relevados en octubre de 2026 (ARS) y estimaciones propias (USD)
+const ARS = 1560;
+const KIT = [
+  ["Cocina", [["Heladera con freezer 300 L", "Drean cíclica 314 L · Frávega", 809999], ["Microondas 20 L", "BGH Eco · Frávega", 149999], ["Vajilla, batería, pava y tostadora", "Estimación Urban Nest", null, 180]]],
+  ["Living", [["Smart TV 43\"", "Philips 43PFD6910 · Frávega", 499999], ["Sillón, desayunador y cortinas", "Estimación Urban Nest", null, 630]]],
+  ["Dormitorio", [["Sommier y colchón queen", "Cannon Exclusive Pillow 160 x 200 · Mercado Libre", 663750], ["Mesas de luz y cortina blackout", "Estimación Urban Nest", null, 150]]],
+  ["Ropa de cama y baño", [["2 juegos de sábanas queen", "Tommy Hilfiger · Ganga Home, por transferencia", 189799], ["4 juegos de toalla y toallón", "Tommy Hilfiger Classic · Ganga Home", 143962], ["Acolchado queen con fundas", "Amara 4 estaciones · Ganga Home", 52990]]],
+  ["Puesta a punto", [["Limpieza profunda y service de aire acondicionado", "Estimación Urban Nest", null, 150]]],
+];
+const ars = n => "$" + Math.round(n).toLocaleString("es-AR");
+let kitTotal = 0;
+$("#kit").innerHTML = KIT.map(([g, items]) => `<li class="kit-g">${g}</li>` + items.map(([n, src, p, u]) => { const v = u ?? Math.round(p / ARS); kitTotal += v; return `<li><b>${n}</b><span>${src}${p ? ` · ${ars(p)}` : ""}</span><em>${usd(v)}</em></li>`; }).join("")).join("")
+  + `<li class="tot"><b>Total estimado</b><em>${usd(kitTotal)}</em><span>Precios publicados en Frávega, Ganga Home y Mercado Libre, relevados en octubre de 2026 a $${ARS.toLocaleString("es-AR")} por dólar. Pueden variar con ofertas y stock.</span></li>`;
 
 const START = [["Contacto", "Hablamos de tu propiedad y de lo que esperás de ella. Te mandamos el análisis por WhatsApp."], ["Visita", "Recorremos el departamento y evaluamos su potencial."], ["Plan de mejoras", "Definimos qué equipar o ajustar para que rinda más."], ["Anuncio", "Fotos profesionales y publicación optimizada."], ["Facturación", "Llegan los huéspedes y, cada mes, tu liquidación."]];
 $("#steps").insertAdjacentHTML("beforeend", START.map((s, i) => `<li class="step"><span class="dot">${i + 1}</span><h3>${s[0]}</h3><p>${s[1]}</p></li>`).join(""));
 const stepsEl = $("#steps"), stepsFill = $("#stepsFill"), stepItems = $$(".step");
 function updateSteps() {
-  const r = stepsEl.getBoundingClientRect(), mid = innerHeight * 0.6;
+  const r = R(stepsEl), mid = innerHeight * 0.6;
   const p = clamp01((mid - r.top) / r.height);
   stepsFill.style.transform = `scaleY(${p})`;
-  stepItems.forEach(s => s.classList.toggle("on", s.getBoundingClientRect().top < mid));
+  stepItems.forEach(s => s.classList.toggle("on", R(s).top < mid));
 }
 
 /* ───────── Apariciones ───────── */
@@ -320,23 +333,31 @@ const hdr = $("#hdr"), mbar = $("#mbar"), contactSec = $("#contacto");
 let hdrSolid = false, lastY = scrollY, goingUp = true;
 const navLinks = $$(".nav a"), navTargets = navLinks.map(a => $(a.getAttribute("href")));
 function updateChrome() {
-  const tr = tourEl.getBoundingClientRect();
+  const tr = R(tourEl);
   hdrSolid = isMobile() ? scrollY > 24 : tr.bottom < innerHeight * 0.5;
   hdr.classList.toggle("solid", hdrSolid || !sheet.hidden);
-  const cr = contactSec.getBoundingClientRect();
-  const pinned = [hsEl, monthEl].some(el => { const r = el.getBoundingClientRect(); return r.top <= 1 && r.bottom >= innerHeight - 1; });
+  const cr = R(contactSec);
+  const pinned = [hsEl, monthEl].some(el => { const r = R(el); return r.top <= 1 && r.bottom >= innerHeight - 1; });
   // La barra aparece al subir y se esconde al bajar, para no tapar el contenido.
   if (Math.abs(scrollY - lastY) > 6) { goingUp = scrollY < lastY; lastY = scrollY; }
   mbar.classList.toggle("show", tr.bottom < innerHeight * 0.4 && cr.top > innerHeight * 0.85 && !pinned && goingUp);
-  let cur = -1; navTargets.forEach((t, i) => { if (t && t.getBoundingClientRect().top < innerHeight * 0.4) cur = i; });
+  let cur = -1; navTargets.forEach((t, i) => { if (t && R(t).top < innerHeight * 0.4) cur = i; });
   navLinks.forEach((a, i) => a.classList.toggle("on", i === cur));
 }
 
 let ticking = false;
 function onScroll() {
   if (ticking) return; ticking = true;
-  requestAnimationFrame(() => { ticking = false; updateTour(); updateHs(); updateMonth(); updateSteps(); updateChrome(); });
+  requestAnimationFrame(() => {
+    ticking = false;
+    [tourEl, hsEl, monthEl, stepsEl, contactSec, ...stepItems, ...navTargets.filter(Boolean)].forEach(el => RC.set(el, el.getBoundingClientRect()));
+    updateTour(); updateHs(); updateMonth(); updateSteps(); updateChrome();
+    RC.clear();
+  });
 }
+let hsMax = 0;
+const measureHs = () => { hsMax = Math.max(0, hsTrack.scrollWidth - innerWidth); };
+measureHs(); addEventListener("resize", measureHs); addEventListener("load", measureHs);
 addEventListener("scroll", onScroll, { passive: true });
 addEventListener("resize", onScroll);
 onScroll();

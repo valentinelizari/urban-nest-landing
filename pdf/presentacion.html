@@ -120,6 +120,23 @@ h2 .soft{color:var(--muted)}
 .mosaic figcaption{position:absolute;left:12px;bottom:10px;font-size:11.5px;font-weight:600;color:#fff;background:rgba(20,10,14,.5);padding:4px 10px;border-radius:99px}
 .mosaic .m1{grid-row:span 2}
 .mosaic .m2{grid-row:span 2}
+.proj td{padding:6px 12px}
+.proj th{padding:8px 12px}
+/* cotización */
+.kit2{padding-top:10px}
+.kit2 .kg{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--crimson);margin:6px 0 0}
+.kit2 .kr{display:grid;grid-template-columns:1fr auto;gap:0 14px;padding:2.5px 0;border-bottom:1px solid var(--line)}
+.kit2 .kr b{font-size:13.5px}
+.kit2 .kr em{font-style:normal;font-weight:700;font-size:13.5px;grid-row:1;grid-column:2}
+.kit2 .kr small{grid-column:1;font-size:11px;color:var(--muted)}
+.kit2 .tot{border-bottom:0;border-top:2px solid var(--ink);margin-top:6px;padding-top:6px}
+.kit2 .tot b,.kit2 .tot em{font-size:20px;font-weight:900;color:var(--crimson)}
+.kit2 .ksrc{font-size:10.5px;color:var(--muted);margin-top:6px}
+.mk{margin-top:14px;border-top:2px solid var(--ink);padding-top:8px;font-size:12.5px}
+.mk b{display:block;color:var(--ink);font-size:13px;margin-bottom:4px}
+.mk div{display:grid;grid-template-columns:1.4fr .8fr .8fr;padding:3px 0;border-bottom:1px solid var(--line)}
+.mk div.us{color:var(--crimson);font-weight:700}
+.mk small{display:block;font-size:10px;margin-top:5px;line-height:1.35}
 /* reseñas */
 .revs{display:grid;grid-template-columns:1fr 1fr;gap:26px 56px;margin-top:30px}
 .revs figure{margin:0;border-top:2px solid var(--crimson);padding-top:16px}
@@ -430,14 +447,21 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
   <p class="k">Proyección</p>
   <h2>Mes a mes, lo que recibís.</h2>
   <div class="row" style="margin-top:20px;gap:44px">
-    <table style="flex:1;font-size:13.5px">
+    <table class="proj" style="flex:1;font-size:13px">
       <thead><tr><th>Mes</th><th class="n">Noches</th><th class="n">Tarifa</th><th class="n">Ingreso por noches</th><th class="n" style="color:var(--crimson)">Para vos</th><th class="n">Tradicional</th><th class="n">Diferencia</th></tr></thead>
       <tbody id="proj"></tbody>
     </table>
-    <div style="width:270px;font-size:14px;color:var(--muted);line-height:1.55">
+    <div style="width:270px;font-size:13px;color:var(--muted);line-height:1.5">
       <p><b style="color:var(--ink);display:block;font-size:16px;margin-bottom:6px">Cómo se calcula “Para vos”</b>Lo que pagan los huéspedes por las noches, menos la tarifa de servicio de Airbnb (15,5%) y nuestra gestión integral (20% de lo que ingresa).</p>
       <p style="margin-top:12px">La gestión incluye precios, huéspedes, ingreso, coordinación de limpieza, mantenimiento y reportes. La limpieza la paga el huésped aparte.</p>
       <p style="margin-top:12px">Entre paréntesis, los meses de temporada baja en los que el alquiler tradicional rinde más. En el año, la diferencia es de USD 2.089 a tu favor.</p>
+      <div class="mk"><b>Frente al mercado</b>
+        <div><span>AirDNA</span><span>65%</span><span>USD 60</span></div>
+        <div><span>AirROI</span><span>46,8%</span><span>USD 68</span></div>
+        <div><span>GuestFavorites</span><span>69%</span><span>USD 55</span></div>
+        <div class="us"><span>Esta proyección</span><span>62%</span><span>USD 52</span></div>
+        <small>Ocupación y tarifa promedio de Airbnb en la Ciudad de Buenos Aires según cada fuente. Supuestos prudentes, dentro del rango.</small>
+      </div>
     </div>
   </div>
   <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Monoambiente céntrico, 2 huéspedes. Valores en USD · 11</span></div>
@@ -496,19 +520,29 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
       <p class="k">Puesta en marcha</p>
       <h2>¿Tu departamento no está equipado?</h2>
       <p class="lead">Una inversión única para dejarlo listo para huéspedes. Si ya está amueblado, ajustamos solo lo necesario. El equipamiento queda en tu departamento y suma valor a la propiedad.</p>
-      <div class="pb"><b>18 meses</b><span>es lo que tarda en recuperarse, aproximadamente, con el ingreso adicional frente al alquiler tradicional.</span></div>
+      <div class="pb"><b>16 meses</b><span>es lo que tarda en recuperarse, aproximadamente, con el ingreso adicional frente al alquiler tradicional: USD 2.089 por año en un monoambiente céntrico.</span></div>
     </div>
-    <div class="col kit" style="padding-top:40px">
-      <div class="rule"></div>
-      <div class="li"><b>Cocina y electro</b><em>USD 830</em><small>Heladera, microondas, pava, tostadora, vajilla y batería</small></div>
-      <div class="li"><b>Living y comedor</b><em>USD 950</em><small>Sillón, Smart TV 43", desayunador y cortina roller</small></div>
-      <div class="li"><b>Dormitorio y baño</b><em>USD 660</em><small>Sommier queen, mesitas, blackout y set de baño</small></div>
-      <div class="li"><b>Textiles y extras</b><em>USD 575</em><small>Juego de blanquería, edredón, toallas y plancha</small></div>
-      <div class="li"><b>Puesta a punto</b><em>USD 150</em><small>Limpieza profunda y service de aire acondicionado</small></div>
-      <div class="li tot" style="border-bottom:0"><b>Total estimado</b><em>USD 3.165</em></div>
+    <div class="col kit2">
+      <p class="kg">Cocina</p>
+      <div class="kr"><b>Heladera con freezer 300 L</b><em>USD 519</em><small>Drean 314 L · Frávega · $809.999</small></div>
+      <div class="kr"><b>Microondas 20 L</b><em>USD 96</em><small>BGH Eco · Frávega · $149.999</small></div>
+      <div class="kr"><b>Vajilla, batería, pava y tostadora</b><em>USD 180</em><small>Estimación Urban Nest</small></div>
+      <p class="kg">Living</p>
+      <div class="kr"><b>Smart TV 43"</b><em>USD 321</em><small>Philips 43PFD6910 · Frávega · $499.999</small></div>
+      <div class="kr"><b>Sillón, desayunador y cortinas</b><em>USD 630</em><small>Estimación Urban Nest</small></div>
+      <p class="kg">Dormitorio</p>
+      <div class="kr"><b>Sommier y colchón queen</b><em>USD 425</em><small>Cannon Exclusive Pillow · Mercado Libre · $663.750</small></div>
+      <div class="kr"><b>Mesas de luz y cortina blackout</b><em>USD 150</em><small>Estimación Urban Nest</small></div>
+      <p class="kg">Ropa de cama y baño</p>
+      <div class="kr"><b>2 juegos de sábanas queen</b><em>USD 122</em><small>Tommy Hilfiger · Ganga Home · $189.799</small></div>
+      <div class="kr"><b>4 juegos de toalla y toallón</b><em>USD 92</em><small>Tommy Hilfiger Classic · Ganga Home · $143.962</small></div>
+      <div class="kr"><b>Acolchado queen con fundas</b><em>USD 34</em><small>Amara · Ganga Home · $52.990</small></div>
+      <p class="kg">Puesta a punto</p>
+      <div class="kr"><b>Limpieza profunda y service de aire</b><em>USD 150</em><small>Estimación Urban Nest</small></div>
+      <div class="kr tot"><b>Total estimado</b><em>USD 2.719</em></div>
     </div>
   </div>
-  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Precios de referencia de mercado · 14</span></div>
+  <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>Precios publicados en Frávega, Ganga Home y Mercado Libre, octubre 2026, a $1.560 por dólar · 14</span></div>
 </section>
 
 <!-- 15 -->
@@ -523,7 +557,7 @@ td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
     <div><b>¿Qué pasa si se rompe algo?</b><p>Coordinamos los técnicos. Los arreglos que necesitan tu aprobación te los consultamos antes.</p></div>
     <div><b>¿Y si un huésped no paga?</b><p>No pasa: Airbnb cobra antes de cada estadía.</p></div>
     <div><b>¿Cuánto tardamos en empezar?</b><p>Entre dos y cuatro semanas desde la primera charla, según el estado del departamento.</p></div>
-    <div><b>¿Y si no está amueblado?</b><p>Te armamos el plan de equipamiento. La referencia para un monoambiente es USD 3.165, que se recupera en unos 18 meses.</p></div>
+    <div><b>¿Y si no está amueblado?</b><p>Te armamos el plan de equipamiento. La referencia para un monoambiente es USD 2.719 con precios relevados en tiendas, y se recupera en unos 16 meses.</p></div>
   </div>
   <div class="foot"><span class="l"><img src="../assets/img/logo.webp" alt="">Urban Nest · Presentación para propietarios</span><span>15</span></div>
 </section>

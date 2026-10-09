@@ -29,7 +29,7 @@ const PAL = {
   fog: [C("#E9D3C6"), C("#1E0D16")],
   ground: [C("#6F6769"), C("#141013")],
   block: [C("#C9BDB4"), C("#262025")],
-  water: [C("#7F96A8"), C("#0B0810")],
+  water: [C("#8A9DAC"), C("#2A2133")],
   hemiSky: [C("#FFF1E6"), C("#4A3150")],
   hemiGround: [C("#7A625C"), C("#0E080C")],
   sun: [C("#FFD9B0"), C("#8C97CC")],
@@ -60,12 +60,16 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     return null;
   }
   const HQ = !mobile;
-  renderer.setPixelRatio(Math.min(devicePixelRatio || 1, mobile ? 1.5 : 1.6));
+  // Resolución adaptativa: arranca prudente y se ajusta según los cuadros por segundo reales
+  const DPR_MAX = Math.min(devicePixelRatio || 1, mobile ? 1.5 : 1.5);
+  let dpr = Math.min(DPR_MAX, mobile ? 1.25 : 1.25);
+  renderer.setPixelRatio(dpr);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
   renderer.shadowMap.enabled = HQ;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false; // las sombras se recalculan solo cuando cambia el encuadre o el tema
 
   const camera = new THREE.PerspectiveCamera(50, 1, 0.05, 1600);
   const state = { night: night ? 1 : 0, nightTarget: night ? 1 : 0, p: 0, pShown: 0, mx: 0, my: 0, time: 0, auto: false, autoT: 0 };
@@ -127,9 +131,31 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const groundMat = new THREE.MeshStandardMaterial({ color: pick("ground", 0), roughness: 0.95 });
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(1108, 2400), groundMat);
   ground.rotation.x = -Math.PI / 2; ground.position.x = -446; ground.receiveShadow = true; city.add(ground);
-  const waterMat = new THREE.MeshStandardMaterial({ color: pick("water", 0), roughness: 0.18, metalness: 0.4 });
+  // Río de la Plata: agua con oleaje animado que refleja el cielo, costanera y algunos barcos
+  const waveN = (() => {
+    const w = 256, c = document.createElement("canvas"); c.width = c.height = w;
+    const g = c.getContext("2d"), img = g.createImageData(w, w), d = img.data;
+    const H = (x, y) => Math.sin(x * 0.098 + Math.sin(y * 0.05) * 2) * 0.5 + Math.sin(y * 0.147 + x * 0.03) * 0.35 + Math.sin((x + y) * 0.21) * 0.15;
+    for (let y = 0; y < w; y++) for (let x = 0; x < w; x++) {
+      const dx = H(x + 1, y) - H(x - 1, y), dy = H(x, y + 1) - H(x, y - 1), l = Math.hypot(dx, dy, 0.6), i = (y * w + x) * 4;
+      d[i] = (-dx / l * 0.5 + 0.5) * 255; d[i + 1] = (dy / l * 0.5 + 0.5) * 255; d[i + 2] = (0.6 / l * 0.5 + 0.5) * 255; d[i + 3] = 255;
+    }
+    g.putImageData(img, 0, 0);
+    const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(90, 240); return t;
+  })();
+  const waterMat = new THREE.MeshStandardMaterial({ color: pick("water", 0), roughness: 0.22, metalness: 0.55, normalMap: waveN, normalScale: new THREE.Vector2(0.16, 0.16) });
   const water = new THREE.Mesh(new THREE.PlaneGeometry(900, 2400), waterMat);
   water.rotation.x = -Math.PI / 2; water.position.set(108 + 450, -0.4, 0); city.add(water);
+  const shoreMat = new THREE.MeshStandardMaterial({ color: C("#D8CBBE"), roughness: 0.9 });
+  const shore = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.62, 2400), shoreMat); shore.position.set(107.4, -0.1, 0); city.add(shore);
+  const boats = [];
+  const boatMat = new THREE.MeshStandardMaterial({ color: C("#F4EFEA"), roughness: 0.5 });
+  [[150, -60], [190, 30], [240, -150], [175, 120]].forEach(([x, z], i) => {
+    const b = new THREE.Group();
+    const hull = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.5, 4.4), boatMat); hull.position.y = -0.15; b.add(hull);
+    const cab = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.5, 1.4), boatMat); cab.position.set(0, 0.3, -0.6); b.add(cab);
+    b.position.set(x, 0, z); b.rotation.y = i * 0.7; city.add(b); boats.push(b);
+  });
 
   const PITCH = 13.2, BLOCK = 10, N = mobile ? 8 : 10, ext = N * PITCH;
   const r = rng(2026), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s3 = V(1, 1, 1), p3 = V(0, 0, 0);
@@ -362,12 +388,14 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const tip = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.9, 4), obeMat);
   tip.rotation.y = Math.PI / 4; tip.position.set(0, 12.6 + 0.45 + 0.18, 0); city.add(tip);
   const OBELISCO = V(0, 13.6, 0);
+  const RIO = V(128, 0, -18);
 
   // Luces de calle, charcos de luz y autos
   const glow = radial([[0, "rgba(255,255,255,1)"], [0.22, "rgba(255,255,255,.75)"], [1, "rgba(255,255,255,0)"]]);
   const lampPos = [];
   for (let z = -ext; z <= ext; z += 4.4) lampPos.push(-7.7, 1.0, z, 7.7, 1.0, z);
   for (let x = -ext; x <= 100; x += 4.4) lampPos.push(x, 1.0, -1.3, x, 1.0, 1.3);
+  for (let z = -ext * 1.6; z <= ext * 1.6; z += 3.6) lampPos.push(106.6, 0.9, z);
   const lampGeo = new THREE.BufferGeometry(); lampGeo.setAttribute("position", new THREE.Float32BufferAttribute(lampPos, 3));
   const lampMat = new THREE.PointsMaterial({ map: glow, color: C("#FFC27A"), size: 1.1, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
   city.add(new THREE.Points(lampGeo, lampMat));
@@ -387,7 +415,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     const taxi = cr() < 0.28;
     carMesh.setColorAt(i, taxi ? C("#141214") : carColors[Math.floor(cr() * carColors.length)]);
   }
-  carMesh.castShadow = HQ; city.add(carMesh);
+  city.add(carMesh);
   const lightGeo = new THREE.BufferGeometry();
   lightGeo.setAttribute("position", new THREE.BufferAttribute(carPos, 3));
   lightGeo.setAttribute("color", new THREE.BufferAttribute(carCol, 3));
@@ -595,12 +623,14 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   rbox(0.46, 0.3, 0.12, 0.06, fabric("#D9A27E"), -1.95, 0.8, -3.5).rotation.x = -0.2;
   rbox(1.9, 0.95, 0.12, 0.05, fabric("#E7D7C5"), -1.95, 0.88, -3.93);
   for (let k = 0; k < 5; k++) box(0.006, 0.8, 0.01, std("#CDBBA8"), -2.7 + k * 0.38, 0.88, -3.865);
-  rbox(0.46, 0.44, 0.4, 0.03, oak, -0.68, 0.47, -3.6);
-  box(0.4, 0.008, 0.005, std("#6E5137"), -0.68, 0.52, -3.398);
-  cyl(0.055, 0.09, 0.24, std("#EDE3D8", { roughness: 0.25 }), -0.68, 0.81, -3.6);
+  rbox(0.4, 0.42, 0.38, 0.03, oak, -0.84, 0.46, -3.62);
+  box(0.34, 0.006, 0.005, std("#6E5137"), -0.84, 0.5, -3.428);
+  add(new THREE.CylinderGeometry(0.006, 0.006, 0.08, 12), std("#C9A77E", { metalness: 0.9, roughness: 0.3 }), -0.84, 0.56, -3.42).rotation.z = Math.PI / 2;
+  cyl(0.055, 0.09, 0.22, std("#EDE3D8", { roughness: 0.25 }), -0.84, 0.78, -3.64);
+  [["#5E1028", 0.03], ["#EBD9C6", 0.025]].forEach(([c, h], i) => rbox(0.18, h, 0.13, 0.004, std(c), -0.78, 0.67 + h / 2 + i * 0.03, -3.5));
   const shadeNight = new THREE.MeshStandardMaterial({ color: C("#F6ECDD"), emissive: C("#FFC77E"), emissiveIntensity: 0, roughness: 1, side: THREE.DoubleSide });
-  add(new THREE.CylinderGeometry(0.12, 0.16, 0.19, 32, 1, true), shadeNight, -0.68, 1.02, -3.6);
-  const bedLamp = new THREE.PointLight(0xFFB870, 0, 4, 1.8); bedLamp.position.set(-0.68, 1.0, -3.5); room.add(bedLamp);
+  add(new THREE.CylinderGeometry(0.11, 0.15, 0.18, 32, 1, true), shadeNight, -0.84, 0.98, -3.64);
+  const bedLamp = new THREE.PointLight(0xFFB870, 0, 4, 1.8); bedLamp.position.set(-0.84, 0.96, -3.55); room.add(bedLamp);
   // Listones divisores
   for (let k = 0; k < 12; k++) rbox(0.05, RH - 0.25, 0.08, 0.008, oak, -2.85 + k * 0.19, 0.25 + (RH - 0.25) / 2, -1.82);
   // Consola con cajones, notebook y libros
@@ -646,6 +676,18 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   [[-1.0], [0.0]].forEach(([z]) => box(0.04, 2.2, 0.06, trim, RW / 2 - 0.03, 1.1, z)); box(0.04, 0.06, 1.06, trim, RW / 2 - 0.03, 2.18, -0.5);
   const brass = std("#C9A77E", { metalness: 0.9, roughness: 0.28 });
   add(new THREE.CylinderGeometry(0.012, 0.012, 0.14, 16), brass, RW / 2 - 0.09, 1.02, -0.13).rotation.x = Math.PI / 2;
+  // Sombras de contacto bajo los muebles
+  const aoTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 128; const g = c.getContext("2d"), gr = g.createRadialGradient(64, 64, 10, 64, 64, 64); gr.addColorStop(0, "rgba(255,255,255,1)"); gr.addColorStop(1, "rgba(255,255,255,0)"); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+  const aoMat = new THREE.MeshBasicMaterial({ color: 0x1a0f0c, alphaMap: aoTex, transparent: true, opacity: 0.38, depthWrite: false });
+  [[1.55, 0.012, -3.42, 2.6, 1.3], [-1.8, 0.012, -2.95, 3.0, 2.6], [-1.95, 0.252, -2.95, 2.1, 2.3], [1.45, 0.012, -2.15, 1.3, 1.3], [-1.8, 0.012, -1.5, 1.9, 0.75], [-0.84, 0.252, -3.62, 0.62, 0.56]].forEach(([x, y, z, w, d]) => {
+    const a = new THREE.Mesh(new THREE.PlaneGeometry(w, d), aoMat); a.rotation.x = -Math.PI / 2; a.position.set(x, y, z); room.add(a);
+  });
+  // Manta sobre el brazo del sillón, libros en la mesa y espejo redondo junto a la puerta
+  const drape = rbox(0.34, 0.5, 0.82, 0.05, fabric("#C98B9C"), 2.68, 0.52, -3.42); drape.rotation.z = -0.06;
+  [["#8B1D3D", 0.035], ["#EBD9C6", 0.03], ["#3A3236", 0.028]].forEach(([c, h], i) => rbox(0.26 - i * 0.02, h, 0.19, 0.005, std(c), 1.62, 0.44 + h / 2 + i * 0.034, -1.98).rotation.y = i * 0.12);
+  const mirrorFrame = add(new THREE.TorusGeometry(0.32, 0.018, 12, 64), std("#C9A77E", { metalness: 0.9, roughness: 0.3 }), RW / 2 - 0.03, 1.55, 0.95); mirrorFrame.rotation.y = Math.PI / 2;
+  const mirror = new THREE.Mesh(new THREE.CircleGeometry(0.31, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.04, envMapIntensity: 1.4 }));
+  mirror.position.set(RW / 2 - 0.035, 1.55, 0.95); mirror.rotation.y = -Math.PI / 2; room.add(mirror);
   // Lámparas colgantes de ratán
   const shadeM = new THREE.MeshStandardMaterial({ color: C("#C08A55"), roughness: 0.7, alphaMap: rattan, alphaTest: 0.5, side: THREE.DoubleSide, emissive: C("#FFB466"), emissiveIntensity: 0 });
   const pend = [];
@@ -654,7 +696,6 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     const g = add(new THREE.SphereGeometry(0.19, 40, 24), shadeM, x, RH - 0.92, z); g.scale.set(1, 0.85, 1); g.castShadow = false;
     const bulb = add(new THREE.SphereGeometry(0.03, 16, 16), new THREE.MeshBasicMaterial({ color: C("#FFE2B8") }), x, RH - 0.92, z); bulb.castShadow = false;
     const pl = new THREE.PointLight(0xFFB870, 0, 6, 1.7); pl.position.set(x, RH - 0.92, z);
-    if (i === 0 && HQ) { pl.castShadow = true; pl.shadow.mapSize.set(512, 512); pl.shadow.bias = -0.002; pl.shadow.radius = 8; }
     room.add(pl); pend.push(pl);
   });
 
@@ -663,7 +704,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   if (HQ) {
     composer = new EffectComposer(renderer);
     renderPass = new RenderPass(city, camera);
-    bloom = new UnrealBloomPass(new THREE.Vector2(512, 512), 0.2, 0.55, 0.9);
+    bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.55, 0.9);
     composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
   }
 
@@ -671,11 +712,11 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   // Vuelo continuo tipo drone: puntos de paso de posición y de mirada, recorridos a ritmo parejo.
   const curve = pts => new THREE.CatmullRomCurve3(pts, false, "centripetal", 0.5);
   const CITY_POS = curve([
-    V(92, 70, 118), V(40, 30, 72), V(9, 9, 42), V(6, 8.6, 14), V(7, 10, -5),
+    V(70, 64, 120), V(40, 30, 72), V(9, 9, 42), V(6, 8.6, 14), V(7, 10, -5),
     V(-6, 24, -14), V(-17, 11, -0.7), V(-29, 5.6, -0.5), V(WIN.x + 0.5, WIN.y + 0.18, WIN.z - 2.1), V(WIN.x, WIN.y, WIN.z - 0.25),
   ]);
   const CITY_LOOK = curve([
-    V(-8, 0, -10), V(0, 6, 0), V(0, 8, 0), V(-1, 9.5, -4), V(-22, 6, -24),
+    V(40, 0, -30), V(0, 6, 0), V(0, 8, 0), V(-1, 9.5, -4), V(-22, 6, -24),
     V(-60, 0, -70), V(-36, 5, 1.5), V(HERO.x, 4.6, HERO.z), V(WIN.x, WIN.y, WIN.z), V(WIN.x, WIN.y, WIN.z + 2),
   ]);
   const ROOM_POS = curve([
@@ -698,7 +739,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   }
   const CUT = 0.6;
   const anchors = {
-    obe: PLACES[0].label, acu: PLACES[1].label, oll: PLACES[2].label, obelisco: OBELISCO,
+    obe: PLACES[0].label, acu: PLACES[1].label, oll: PLACES[2].label, obelisco: OBELISCO, rio: RIO,
     bed: V(-1.9, 0.85, -2.8), door: V(RW / 2 - 0.08, 1.15, -0.4), phone: V(1.3, 0.5, -2.05), laptop: V(-1.65, 1.02, -1.6), sofa: V(1.55, 0.95, -3.45),
   };
   const ROOM_ANCHORS = new Set(["bed", "door", "phone", "laptop", "sofa"]);
@@ -707,10 +748,10 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     uNight.value = m;
     skyMat.uniforms.top.value.copy(pick("skyTop", m)); skyMat.uniforms.bot.value.copy(pick("skyBot", m)); skyMat.uniforms.sunAmt.value = 1 - m;
     city.fog.color.copy(pick("fog", m));
-    groundMat.color.copy(pick("ground", m)); blockMat.color.copy(pick("block", m)); waterMat.color.copy(pick("water", m));
+    groundMat.color.copy(pick("ground", m)); blockMat.color.copy(pick("block", m)); waterMat.color.copy(pick("water", m)); shoreMat.color.copy(C("#D8CBBE").lerp(C("#3A2E33"), m)); boatMat.color.copy(C("#F4EFEA").lerp(C("#6E6268"), m));
     medianMat.color.copy(C("#CDB2A3").lerp(C("#2E2228"), m)); plazaMat.color.copy(C("#E4D2C4").lerp(C("#3A2C33"), m));
     hemi.color.copy(pick("hemiSky", m)); hemi.groundColor.copy(pick("hemiGround", m)); hemi.intensity = lerp(0.5, 0.4, m);
-    sun.color.copy(pick("sun", m)); sun.intensity = lerp(2.7, 0.22, m); sun.castShadow = HQ && m < 0.5;
+    sun.color.copy(pick("sun", m)); sun.intensity = lerp(2.7, 0.22, m); sun.castShadow = HQ && m < 0.5; renderer.shadowMap.needsUpdate = true;
     city.environmentIntensity = lerp(0.45, 0.2, m);
     starMat.opacity = m; lampMat.opacity = m * 0.7; carLightMat.opacity = m; lineMat.opacity = lerp(0.55, 0.12, m);
     moon.material.opacity = m;
@@ -734,11 +775,20 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   }
   applyTheme(state.night, true);
 
+  function warmUp() {
+    const rt = new THREE.WebGLRenderTarget(64, 64);
+    const cam = camera.clone(); cam.position.set(0, 1.5, 2); cam.lookAt(0, 1, -2);
+    renderer.setRenderTarget(rt);
+    renderer.shadowMap.needsUpdate = true; renderer.render(room, cam);
+    renderer.shadowMap.needsUpdate = true; renderer.render(city, camera);
+    renderer.setRenderTarget(null); rt.dispose();
+    renderer.shadowMap.needsUpdate = true;
+  }
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
     renderer.setSize(w, h, false);
-    if (composer) composer.setSize(w, h);
+    if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 64 : 50;
     camera.updateProjectionMatrix();
@@ -749,7 +799,8 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   const v3 = new THREE.Vector3(), focus = new THREE.Vector3();
   let labelEls = [], lastPaint = state.night, running = false, visible = true, last = performance.now();
-  const AUTO_LEN = 46; // segundos de la vuelta automática en mobile
+  let lastInRoom = null, fpsAcc = 0, fpsN = 0;
+  const AUTO_LEN = 30; // segundos de la vuelta automática en mobile
 
   function frame(now) {
     if (!running) return;
@@ -778,12 +829,13 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       roll = lerp(roll, rl, 0.08);
       if (!reduce) { const idle = 1 - clamp01(p / 0.06); pos.add(V(Math.sin(state.time * 0.15) * 6 * idle, 0, Math.cos(state.time * 0.15) * 4 * idle)); }
       moveCars(dt);
+      if (!reduce) { waveN.offset.x += dt * 0.012; waveN.offset.y += dt * 0.02; boats.forEach((b, i) => { b.position.z += dt * (0.8 + i * 0.2); if (b.position.z > 260) b.position.z = -260; }); }
       
       if (HQ) {
         focus.copy(look).setY(0).lerp(V(pos.x, 0, pos.z), 0.35);
         const texel = (2 * SHADOW_SPAN) / 2048;
         focus.x = Math.round(focus.x / texel) * texel; focus.z = Math.round(focus.z / texel) * texel;
-        sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(SUN_DIR, 220);
+        if (!focus.equals(sun.target.position)) { sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(SUN_DIR, 220); renderer.shadowMap.needsUpdate = true; }
       }
     } else {
       let rl;
@@ -799,7 +851,15 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     const scene = inRoom ? room : city;
     renderer.toneMappingExposure = inRoom ? lerp(0.8, 1.0, state.night) : lerp(0.82, 1.05, state.night);
-    if (composer) { renderPass.scene = scene; composer.render(dt); } else renderer.render(scene, camera);
+    if (inRoom !== lastInRoom) { renderer.shadowMap.needsUpdate = true; lastInRoom = inRoom; }
+    if (composer && state.night > 0.05) { renderPass.scene = scene; composer.render(dt); } else renderer.render(scene, camera);
+    // Medición de fluidez y ajuste de resolución
+    fpsAcc += dt; fpsN++;
+    if (fpsAcc > 1.2) {
+      const ft = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0;
+      const next = ft > 0.022 ? Math.max(0.75, dpr - 0.15) : ft < 0.0135 ? Math.min(DPR_MAX, dpr + 0.1) : dpr;
+      if (Math.abs(next - dpr) > 0.01) { dpr = next; renderer.setPixelRatio(dpr); resize(); }
+    }
 
     // Etiquetas HTML ancladas a puntos 3D
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -810,9 +870,13 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       if (on) {
         v3.copy(a).project(camera);
         if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) on = false;
-        else { l.style.transform = `translate3d(${(v3.x * 0.5 + 0.5) * w}px, ${(-v3.y * 0.5 + 0.5) * h}px, 0)`; l.classList.toggle("flip", v3.x > 0.2); }
+        else {
+          const tr = `translate3d(${((v3.x * 0.5 + 0.5) * w).toFixed(1)}px, ${((-v3.y * 0.5 + 0.5) * h).toFixed(1)}px, 0)`;
+          if (l._tr !== tr) { l.style.transform = tr; l._tr = tr; }
+          const fl = v3.x > 0.2; if (l._fl !== fl) { l.classList.toggle("flip", fl); l._fl = fl; }
+        }
       }
-      l.classList.toggle("on", on);
+      if (l._on !== on) { l.classList.toggle("on", on); l._on = on; }
     }
   }
 
@@ -824,7 +888,12 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     setNight(on, instant) { state.nightTarget = on ? 1 : 0; if (instant) { state.night = state.nightTarget; applyTheme(state.night, true); lastPaint = state.night; } },
     setLabels(els) { labelEls = els; },
     setVisible(v) { visible = v; },
-    start() { if (!running) { running = true; requestAnimationFrame(t => { last = t; frame(t); }); } },
+    start() {
+      if (running) return;
+      running = true;
+      warmUp();
+      requestAnimationFrame(t => { last = t; frame(t); });
+    },
     resize,
   };
 }
