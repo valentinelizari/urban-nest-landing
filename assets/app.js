@@ -83,9 +83,13 @@ function paintTour(p) {
   const on = chapters.find(el => inRange(el, p));
   if (on && on.dataset.cap !== capText) { capText = on.dataset.cap; cap.classList.remove("in"); void cap.offsetWidth; cap.textContent = capText; cap.classList.add("in"); }
 }
+let lastOut = -1;
 function updateTour() {
   if (isMobile()) return;
   const p = tourProgress();
+  // Al salir del recorrido, los textos sobre el 3D se desvanecen antes de que llegue la sección siguiente
+  const out = Math.round(clamp01((innerHeight - R(tourEl).bottom) / (innerHeight * 0.3)) * 100) / 100;
+  if (out !== lastOut) { tourEl.style.setProperty("--out", out); lastOut = out; }
   if (tour) tour.setProgress(p);
   panels.forEach(el => el.classList.toggle("on", inRange(el, p)));
   paintTour(p);
@@ -291,19 +295,17 @@ const CMP = [
 $("#cmp").innerHTML = `<div class="cmp-r cmp-h" role="row"><span role="columnheader"></span><span class="a" role="columnheader">Alquiler tradicional</span><span class="b" role="columnheader">Con Urban Nest</span></div>` +
   CMP.map(r => `<div class="cmp-r rv" role="row"><span class="k" role="rowheader">${r[0]}</span><span class="a" role="cell">${r[1]}</span><span class="b" role="cell">${r[2]}</span></div>`).join("");
 
-// Equipamiento: precios publicados relevados en octubre de 2026 (ARS) y estimaciones propias (USD)
-const ARS = 1560;
+// Estimaciones prudentes en dólares, redondeadas hacia arriba
 const KIT = [
-  ["Cocina", [["Heladera con freezer 300 L", "Drean cíclica 314 L · Frávega", 809999], ["Microondas 20 L", "BGH Eco · Frávega", 149999], ["Vajilla, batería, pava y tostadora", "Estimación Urban Nest", null, 180]]],
-  ["Living", [["Smart TV 43\"", "Philips 43PFD6910 · Frávega", 499999], ["Sillón, desayunador y cortinas", "Estimación Urban Nest", null, 630]]],
-  ["Dormitorio", [["Sommier y colchón queen", "Cannon Exclusive Pillow 160 x 200 · Mercado Libre", 663750], ["Mesas de luz y cortina blackout", "Estimación Urban Nest", null, 150]]],
-  ["Ropa de cama y baño", [["2 juegos de sábanas queen", "Tommy Hilfiger · Ganga Home, por transferencia", 189799], ["4 juegos de toalla y toallón", "Tommy Hilfiger Classic · Ganga Home", 143962], ["Acolchado queen con fundas", "Amara 4 estaciones · Ganga Home", 52990]]],
-  ["Puesta a punto", [["Limpieza profunda y service de aire acondicionado", "Estimación Urban Nest", null, 150]]],
+  ["Cocina", [["Heladera con freezer 300 L", "Cíclica, bajo consumo", 520], ["Microondas 20 L", "Uso diario", 100], ["Vajilla, batería, pava y tostadora", "Para 4 huéspedes", 180]]],
+  ["Living", [["Smart TV 43\"", "Con aplicaciones de streaming", 330], ["Sillón, desayunador y cortinas", "Línea resistente al uso intensivo", 630]]],
+  ["Dormitorio", [["Sommier y colchón queen", "Alta densidad", 430], ["Mesas de luz y cortina blackout", "Descanso sin luz exterior", 150]]],
+  ["Ropa de cama y baño", [["2 juegos de sábanas queen", "Algodón de calidad hotelera", 130], ["4 juegos de toalla y toallón", "Algodón de alto gramaje", 100], ["Acolchado queen con fundas", "Cuatro estaciones", 40]]],
+  ["Puesta a punto", [["Limpieza profunda y service de aire acondicionado", "Antes del primer huésped", 150]]],
 ];
-const ars = n => "$" + Math.round(n).toLocaleString("es-AR");
 let kitTotal = 0;
-$("#kit").innerHTML = KIT.map(([g, items]) => `<li class="kit-g">${g}</li>` + items.map(([n, src, p, u]) => { const v = u ?? Math.round(p / ARS); kitTotal += v; return `<li><b>${n}</b><span>${src}${p ? ` · ${ars(p)}` : ""}</span><em>${usd(v)}</em></li>`; }).join("")).join("")
-  + `<li class="tot"><b>Total estimado</b><em>${usd(kitTotal)}</em><span>Precios publicados en Frávega, Ganga Home y Mercado Libre, relevados en octubre de 2026 a $${ARS.toLocaleString("es-AR")} por dólar. Pueden variar con ofertas y stock.</span></li>`;
+$("#kit").innerHTML = KIT.map(([g, items]) => `<li class="kit-g">${g}</li>` + items.map(([n, d, v]) => { kitTotal += v; return `<li><b>${n}</b><span>${d}</span><em>${usd(v)}</em></li>`; }).join("")).join("")
+  + `<li class="tot"><b>Total estimado</b><em>${usd(kitTotal)}</em><span>Estimación prudente. Si el departamento ya tiene parte del equipamiento, el monto baja.</span></li>`;
 
 const START = [["Contacto", "Hablamos de tu propiedad y de lo que esperás de ella. Te mandamos el análisis por WhatsApp."], ["Visita", "Recorremos el departamento y evaluamos su potencial."], ["Plan de mejoras", "Definimos qué equipar o ajustar para que rinda más."], ["Anuncio", "Fotos profesionales y publicación optimizada."], ["Facturación", "Llegan los huéspedes y, cada mes, tu liquidación."]];
 $("#steps").insertAdjacentHTML("beforeend", START.map((s, i) => `<li class="step"><span class="dot">${i + 1}</span><h3>${s[0]}</h3><p>${s[1]}</p></li>`).join(""));
@@ -319,9 +321,8 @@ function updateSteps() {
 const io = new IntersectionObserver(es => es.forEach(e => {
   if (!e.isIntersecting) return;
   const t = e.target; t.classList.add("in");
-  if (t.classList.contains("year-chart")) $(".bars", t).classList.add("in");
   if (t.id === "dotplot") $$(".dot", t).forEach(d => d.style.left = d.dataset.left);
-  const c = t.querySelector("[data-count]"); if (c) countUp(c);
+  const c = t.querySelector("[data-count]"); if (c && !c.closest("#numeros")) countUp(c);
   io.unobserve(t);
 }), { threshold: 0.18 });
 $$(".rv").forEach(el => io.observe(el));
@@ -331,6 +332,50 @@ function countUp(el) {
   const t0 = performance.now();
   const step = t => { const k = clamp01((t - t0) / 1400), e = 1 - Math.pow(1 - k, 3); el.textContent = pre + Math.round(end * e) + suf; if (k < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
+}
+
+/* ───────── Números que se arman con el scroll ───────── */
+// Las barras del año crecen y la cifra principal sube según cuánto bajaste, no de golpe.
+const yearChart = $(".year-chart"), yearCols = $$("#yearBars .col"), bigCount = $("#numeros [data-count]");
+yearCols.forEach(c => { const i = $("i", c); i.style.transition = "none"; });
+let lastG = -1;
+function updateNumbers() {
+  const r = R(yearChart), g = reduce ? 1 : clamp01((innerHeight * 0.92 - r.top) / (innerHeight * 0.5));
+  if (Math.abs(g - lastG) < 0.002) return; lastG = g;
+  yearCols.forEach((c, k) => {
+    const v = clamp01(g * 1.55 - k * 0.05), e = 1 - Math.pow(1 - v, 3);
+    c.firstElementChild.style.transform = `scaleY(${e.toFixed(3)})`;
+    c.querySelector("b").style.opacity = v > 0.92 ? 1 : 0;
+  });
+  if (bigCount) { const e = 1 - Math.pow(1 - g, 2); bigCount.textContent = (bigCount.dataset.prefix || "") + Math.round(+bigCount.dataset.count * e) + (bigCount.dataset.suffix || ""); }
+}
+
+/* ───────── Títulos que se revelan línea por línea ───────── */
+function splitTitle(h) {
+  const walk = node => [...node.childNodes].forEach(n => {
+    if (n.nodeType === 3) {
+      const frag = document.createDocumentFragment();
+      n.textContent.split(/(\s+)/).forEach(t => {
+        if (!t) return;
+        if (/^\s+$/.test(t)) { frag.append(t); return; }
+        const w = document.createElement("span"); w.className = "w";
+        const i = document.createElement("span"); i.className = "wi"; i.textContent = t;
+        w.append(i); frag.append(w);
+      });
+      n.replaceWith(frag);
+    } else if (n.nodeType === 1) walk(n);
+  });
+  walk(h);
+  // Cada palabra toma el retraso de su renglón: el título entra de a una línea
+  const ws = $$(".wi", h); let top = null, line = -1;
+  ws.forEach(w => { const t = w.offsetTop; if (top === null || Math.abs(t - top) > 4) { top = t; line++; } w.style.setProperty("--l", line); });
+}
+if (!reduce) {
+  const titles = $$("main h2.big, #reservaT").filter(h => !h.closest(".tour"));
+  titles.forEach(h => { h.classList.remove("rv"); h.classList.add("lines"); });
+  const tio = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("lines-in"); tio.unobserve(e.target); } }), { threshold: 0.3 });
+  const prep = () => titles.forEach(h => { if (!h.dataset.split) { splitTitle(h); h.dataset.split = 1; tio.observe(h); } });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(prep); else prep();
 }
 
 /* ───────── Header, barra mobile y navegación activa ───────── */
@@ -355,8 +400,8 @@ function onScroll() {
   if (ticking) return; ticking = true;
   requestAnimationFrame(() => {
     ticking = false;
-    [tourEl, hsEl, monthEl, stepsEl, contactSec, ...stepItems, ...navTargets.filter(Boolean)].forEach(el => RC.set(el, el.getBoundingClientRect()));
-    updateTour(); updateHs(); updateMonth(); updateSteps(); updateChrome();
+    [tourEl, hsEl, monthEl, stepsEl, contactSec, yearChart, ...stepItems, ...navTargets.filter(Boolean)].forEach(el => RC.set(el, el.getBoundingClientRect()));
+    updateTour(); updateHs(); updateMonth(); updateSteps(); updateNumbers(); updateChrome();
     RC.clear();
   });
 }

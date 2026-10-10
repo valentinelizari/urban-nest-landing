@@ -11,7 +11,7 @@
 <meta property="og:description" content="Gestión completa de departamentos en Airbnb en Buenos Aires. Pedí tu cotización sin costo.">
 <meta property="og:image" content="/assets/img/og.jpg">
 <meta property="og:locale" content="es_AR">
-<link rel="icon" href="/assets/img/logo.webp" type="image/webp">
+<link rel="icon" href="/assets/img/urban-nest-logo.webp" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -33,7 +33,7 @@
 <a class="skip" href="#contenido">Saltar el recorrido</a>
 
 <header class="hdr" id="hdr">
-  <a class="brand" href="#tour" aria-label="Urban Nest, volver al inicio"><img src="/assets/img/logo.webp" alt="" width="30" height="30"><span>Urban Nest</span></a>
+  <a class="brand" href="#tour" aria-label="Urban Nest, volver al inicio"><img src="/assets/img/urban-nest-logo.webp" alt="" width="36" height="30"><span>Urban Nest</span></a>
   <nav class="nav" aria-label="Secciones">
     <a href="#reserva">Servicios</a>
     <a href="#resultados">Resultados</a>
@@ -76,6 +76,7 @@
     <div class="tour-shade" aria-hidden="true"></div>
     <p class="tour-cap" id="tourCap" aria-hidden="true"></p></div>
 
+    <div class="tour-ui">
     <div class="pin" data-anchor="rio" data-from="0" data-to="0.035"><span class="pin-line"></span><span class="pin-txt">Río de la Plata</span></div>
     <div class="pin" data-anchor="obelisco" data-from="0.13" data-to="0.27"><span class="pin-line"></span><span class="pin-txt">Obelisco</span></div>
     <div class="pin pin-un" data-anchor="obe" data-from="0.26" data-to="0.5"><span class="pin-line"></span><span class="pin-txt"><b>Urban Nest Obelisco</b>Corrientes y Callao · 4,95★</span></div>
@@ -141,6 +142,7 @@
     </ol>
     <a class="tour-skip" href="#reserva">Saltar el recorrido</a>
     <div class="tour-bar" aria-hidden="true"><i id="tourBar"></i></div>
+    </div>
   </div>
 </section>
 
@@ -190,7 +192,7 @@
       </div>
       <figure class="year-chart rv" aria-label="Ingreso mensual para el propietario frente a un alquiler tradicional de USD 495">
         <div class="bars" id="yearBars"></div>
-        <figcaption class="note">Proyección de referencia. Alquiler tradicional: promedio de monoambientes en CABA (Zonaprop, agosto 2026) a $1.560 por dólar.</figcaption>
+        <figcaption class="note">Proyección de referencia con supuestos prudentes. Alquiler tradicional: promedio de un monoambiente en la Ciudad de Buenos Aires.</figcaption>
       </figure>
     </div>
   </div>
@@ -247,21 +249,7 @@
         <a class="btn btn-light btn-block" id="simCta" href="#contacto">Quiero un análisis de mi departamento</a>
       </aside>
     </div>
-    <p class="note">Simulación orientativa. La demanda, la tarifa y el resultado dependen de la ubicación, el equipamiento y la temporada. En la visita te damos una proyección a medida. La limpieza la paga el huésped por separado.</p>
-    <div class="mkt rv">
-      <div class="mkt-head">
-        <h3>Cómo se compara con el mercado</h3>
-        <p>Referencias públicas de datos de Airbnb para la Ciudad de Buenos Aires, para que puedas revisar nuestra simulación. Cada fuente mide distinto (períodos, anuncios incluidos y métodos), por eso los valores varían.</p>
-      </div>
-      <div class="mkt-table" role="table" aria-label="Datos de mercado de Airbnb en la Ciudad de Buenos Aires">
-        <div class="mkt-r mkt-h" role="row"><span role="columnheader">Fuente</span><span role="columnheader">Ocupación</span><span role="columnheader">Tarifa promedio</span><span role="columnheader">Base</span></div>
-        <div class="mkt-r" role="row"><span role="cell"><a href="https://www.airdna.co/vacation-rental-data/app/ar/ciudad-autonoma-de-buenos-aires/buenos-aires/overview" target="_blank" rel="noopener">AirDNA</a></span><span role="cell">65%</span><span role="cell">USD 60</span><span role="cell">40.677 anuncios</span></div>
-        <div class="mkt-r" role="row"><span role="cell"><a href="https://www.airroi.com/airbnb-data/argentina/autonomous-city-of-buenos-aires/buenos-aires" target="_blank" rel="noopener">AirROI</a></span><span role="cell">46,8%</span><span role="cell">USD 68</span><span role="cell">Abril 2025 a marzo 2026</span></div>
-        <div class="mkt-r" role="row"><span role="cell"><a href="https://guestfavorites.com/estimation-airbnb/ar/ciudad-autonoma-de-buenos-aires" target="_blank" rel="noopener">GuestFavorites</a></span><span role="cell">69%</span><span role="cell">USD 55</span><span role="cell">Mayo 2026</span></div>
-        <div class="mkt-r mkt-us" role="row"><span role="cell">Nuestra simulación</span><span role="cell">62%</span><span role="cell">USD 52</span><span role="cell">Monoambiente céntrico, año completo</span></div>
-      </div>
-      <p class="note">Usamos supuestos prudentes, dentro del rango del mercado. En el análisis que te mandamos por WhatsApp los ajustamos a tu barrio, tamaño y equipamiento con departamentos comparables de la zona: eso es lo que ningún promedio general puede darte.</p>
-    </div>
+    <p class="note">Simulación orientativa con supuestos prudentes. La demanda, la tarifa y el resultado dependen de la ubicación, el equipamiento y la temporada. En el análisis que te mandamos por WhatsApp lo ajustamos a tu departamento. La limpieza la paga el huésped por separado.</p>
   </div>
 </section>
 
@@ -327,7 +315,7 @@
           <div class="hp" aria-hidden="true"><label for="lfWeb">No completar</label><input id="lfWeb" name="web" tabindex="-1" autocomplete="off"></div>
           <p class="err" id="lfErr" role="alert" hidden></p>
           <button class="btn btn-primary btn-block btn-lg" type="submit" id="lfBtn">Quiero mi cotización</button>
-          <p class="legal">Sin compromiso. Usamos tus datos solo para contactarte por tu departamento.</p>
+          <p class="legal">Sin compromiso. Al enviar aceptás la <a href="/privacidad" target="_blank" rel="noopener">política de privacidad</a>: usamos tus datos solo para contactarte por tu departamento.</p>
         </form>
         <a class="pdf-row" href="/Urban_Nest_Presentacion_Propietarios.pdf" download data-pdf="contacto"><span class="pdf-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg></span><span><b>Presentación para propietarios</b><small id="pdfMeta">PDF · todo lo que necesitás saber antes de decidir</small></span></a>
       </div>
@@ -346,9 +334,9 @@
 
 <footer class="ft">
   <div class="wrap ft-in">
-    <a class="brand" href="#tour"><img src="/assets/img/logo.webp" alt="" width="26" height="26"><span>Urban Nest</span></a>
+    <a class="brand" href="#tour"><img src="/assets/img/urban-nest-logo.webp" alt="" width="31" height="26"><span>Urban Nest</span></a>
     <p>Gestión profesional de departamentos en Airbnb en Buenos Aires. © 2026</p>
-    <nav aria-label="Pie de página"><a href="#reserva">Servicios</a><a href="#resultados">Resultados</a><a href="#simulador">Simulador</a><a href="/Urban_Nest_Presentacion_Propietarios.pdf" download data-pdf="footer">Presentación en PDF</a><a href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a></nav>
+    <nav aria-label="Pie de página"><a href="#reserva">Servicios</a><a href="#resultados">Resultados</a><a href="#simulador">Simulador</a><a href="/Urban_Nest_Presentacion_Propietarios.pdf" download data-pdf="footer">Presentación en PDF</a><a href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a><a href="/privacidad">Política de privacidad</a><a href="/terminos">Términos y condiciones</a></nav>
   </div>
 </footer>
 

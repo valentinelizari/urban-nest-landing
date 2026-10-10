@@ -50,15 +50,21 @@ const radial = (stops) => canvasTex(128, 128, (g) => {
 
 // Qué placa de video está dibujando de verdad. En muchas notebooks el navegador usa la integrada
 // (Intel) aunque haya una dedicada: en ese caso conviene arrancar con una calidad más liviana.
+// -1: el navegador dibuja sin placa de video (aceleración por hardware desactivada).
 function gpuTier() {
   try {
+    // Si el navegador avisa que el 3D sería lento (dibujo por software), devuelve null con esta opción
+    const probe = document.createElement("canvas").getContext("webgl2", { failIfMajorPerformanceCaveat: true });
+    if (!probe) return -1;
+    const lp = probe.getExtension("WEBGL_lose_context"); if (lp) lp.loseContext();
     const c = document.createElement("canvas"), gl = c.getContext("webgl2") || c.getContext("webgl");
     if (!gl) return 0;
     const ext = gl.getExtension("WEBGL_debug_renderer_info");
     const name = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : "";
     const lose = gl.getExtension("WEBGL_lose_context"); if (lose) lose.loseContext();
     if (/RTX|GTX|Quadro|Radeon (RX|Pro)|Apple M\d (Pro|Max|Ultra)|Arc\(TM\) A|Arc A\d/i.test(name)) return 2;
-    if (/Intel|UHD|Iris|HD Graphics|Mali|Adreno|PowerVR|SwiftShader|llvmpipe|Basic Render|Radeon\(TM\) Graphics|Vega \d/i.test(name)) return 0;
+    if (/SwiftShader|llvmpipe|Basic Render|Software/i.test(name)) return -1;
+    if (/Intel|UHD|Iris|HD Graphics|Mali|Adreno|PowerVR|Radeon\(TM\) Graphics|Vega \d/i.test(name)) return 0;
     return 1;
   } catch (e) { return 1; }
 }
@@ -66,7 +72,9 @@ function gpuTier() {
 export function createTour({ canvas, mobile = false, reduce = false, night = false }) {
   const tier = mobile ? 0 : gpuTier();
   // Calidad según la placa: antialias, píxeles a dibujar, alcance de la ciudad y cantidad de autos
-  const Q = mobile ? { aa: false, budget: 1.1e6, maxDpr: 1.5, far: 760, lots: 1, cars: 140, shadow: 0 }
+  // Sin aceleración (soft): menos píxeles que se agrandan en pantalla, ciudad más corta, sin sombras y materiales simples
+  const SOFT = { aa: false, budget: 0.15e6, maxDpr: 1, far: 340, lots: 1, cars: 50, shadow: 0, near: 6, soft: true, minDpr: 0.3, minFps: 28 };
+  const Q = tier < 0 ? SOFT : mobile ? { aa: false, budget: 1.1e6, maxDpr: 1.5, far: 760, lots: 1, cars: 140, shadow: 0 }
     : [{ aa: false, budget: 1.15e6, maxDpr: 1, far: 900, lots: 1, cars: 160, shadow: 1024 },
        { aa: true, budget: 1.6e6, maxDpr: 1.25, far: 900, lots: 1, cars: 220, shadow: 2048 },
        { aa: true, budget: 2.2e6, maxDpr: 1.5, far: 900, lots: 2, cars: 300, shadow: 2048 }][tier];
@@ -76,11 +84,11 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   } catch (e) {
     return null;
   }
-  const HQ = !mobile;
+  const HQ = !mobile && !Q.soft;
   // La resolución sale de un presupuesto de píxeles. Si aun así los cuadros por segundo no alcanzan,
   // se reduce de a un paso (como máximo tres veces) y siempre en el mismo cuadro en que se dibuja.
   let dprScale = 1;
-  const dprFor = (w, h) => Math.max(0.7, Math.min(devicePixelRatio || 1, Q.maxDpr, Math.sqrt(Q.budget / Math.max(1, w * h))) * dprScale);
+  const dprFor = (w, h) => Math.max(Q.minDpr || 0.7, Math.min(devicePixelRatio || 1, Q.maxDpr, Math.sqrt(Q.budget / Math.max(1, w * h))) * dprScale);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -100,6 +108,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   city.fog = new THREE.Fog(pick("fog", state.night), mobile ? 280 : 230, FAR);
 
   const skyMat = new THREE.ShaderMaterial({
+    defines: { OCT: Q.soft ? 2 : mobile ? 4 : 5 },
     side: THREE.BackSide, depthWrite: false, fog: false,
     uniforms: { top: { value: pick("skyTop", 0) }, bot: { value: pick("skyBot", 0) }, sunDir: { value: V(0.55, 0.32, -0.77).normalize() }, sunAmt: { value: 1 }, uTime: { value: 0 }, uN: { value: 0 } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
@@ -108,7 +117,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       float hs(vec2 p){ p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
       float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
         return mix(mix(hs(i), hs(i + vec2(1.0, 0.0)), f.x), mix(hs(i + vec2(0.0, 1.0)), hs(i + vec2(1.0, 1.0)), f.x), f.y); }
-      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * vn(p); p = p * 2.07 + vec2(3.1, 7.7); a *= 0.5; } return v; }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < OCT; i++) { v += a * vn(p); p = p * 2.07 + vec2(3.1, 7.7); a *= 0.5; } return v; }
       void main(){ vec3 d = normalize(vP); float h = clamp(d.y*1.5+0.06,0.0,1.0); vec3 c = mix(bot, top, pow(h,0.7));
         float s = max(dot(d, sunDir), 0.0); c += vec3(1.0,0.78,0.55) * (pow(s, 24.0)*0.2 + pow(s, 900.0)*1.6) * sunAmt;
         if (d.y > 0.0) {
@@ -183,7 +192,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     b.position.set(x, 0, z); b.rotation.y = i * 0.7; city.add(b); boats.push(b);
   });
 
-  const PITCH = 13.2, BLOCK = 10, N = mobile ? 8 : 10, ext = N * PITCH;
+  const PITCH = 13.2, BLOCK = 10, N = Q.near || (mobile ? 8 : 10), ext = N * PITCH;
   const r = rng(2026), m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s3 = V(1, 1, 1), p3 = V(0, 0, 0);
   const blockMat = new THREE.MeshStandardMaterial({ color: pick("block", 0), roughness: 1 });
   const blocks = [];
@@ -208,7 +217,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     return g;
   }
   const oc = 0.085;
-  const plateGeo = prismGeo([[-.5 + oc, -.5], [.5 - oc, -.5], [.5, -.5 + oc], [.5, .5 - oc], [.5 - oc, .5], [-.5 + oc, .5], [-.5, .5 - oc], [-.5, -.5 + oc]]).scale(BLOCK + 0.6, 0.14, BLOCK + 0.6);
+  const plateGeo = Q.soft ? new THREE.PlaneGeometry(BLOCK + 0.6, BLOCK + 0.6).rotateX(-Math.PI / 2).translate(0, 0.14, 0) : prismGeo([[-.5 + oc, -.5], [.5 - oc, -.5], [.5, -.5 + oc], [.5, .5 - oc], [.5 - oc, .5], [-.5 + oc, .5], [-.5, .5 - oc], [-.5, -.5 + oc]]).scale(BLOCK + 0.6, 0.14, BLOCK + 0.6);
   const blockInst = new THREE.InstancedMesh(plateGeo, blockMat, blocks.length);
   blocks.forEach(([x, z], k) => { m4.makeTranslation(x, 0, z); blockInst.setMatrixAt(k, m4); });
   blockInst.receiveShadow = true; city.add(blockInst);
@@ -426,13 +435,13 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     });
     return inst;
   }
-  const bMat = facadeMaterial(0xffffff);
+  const bMat = facadeMaterial(0xffffff, 0, !!Q.soft);
   const bInst = buildInst(bGeo, vols, bMat), chamInst = buildInst(chamGeo, chams, bMat);
   bInst.castShadow = bInst.receiveShadow = chamInst.castShadow = chamInst.receiveShadow = HQ;
   city.add(bInst, chamInst);
   // Pase previo de profundidad: cada píxel de fachada se calcula una sola vez aunque haya edificios superpuestos
   const prepassMat = new THREE.MeshBasicMaterial({ colorWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 2 });
-  const prepass = inst => { const pp = new THREE.InstancedMesh(inst.geometry, prepassMat, inst.count); pp.instanceMatrix = inst.instanceMatrix; pp.renderOrder = -1; city.add(pp); return pp; };
+  const prepass = inst => { if (Q.soft) return null; const pp = new THREE.InstancedMesh(inst.geometry, prepassMat, inst.count); pp.instanceMatrix = inst.instanceMatrix; pp.renderOrder = -1; city.add(pp); return pp; };
   prepass(bInst); prepass(chamInst);
 
   // Ciudad lejana: manzanas más simples hasta el horizonte, con la 9 de Julio y el aeropuerto como referencias
@@ -623,8 +632,8 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   // Jacarandás en flor sobre la 9 de Julio y en algunas veredas
   const trees = [];
   for (let z = -ext; z <= ext; z += 3.1) for (const x of [-4.2, 4.2]) if (Math.hypot(x, z) > 6.5 && r() < 0.85) trees.push([x + (r() - 0.5) * 0.5, z + (r() - 0.5) * 1.2]);
-  blocks.forEach(([bx, bz]) => { if (r() < 0.35) for (let i = 0; i < 4; i++) trees.push([bx - BLOCK / 2 - 0.6, bz - BLOCK / 2 + 1.2 + i * 2.5]); });
-  const canopyGeo = new THREE.IcosahedronGeometry(1, 1);
+  blocks.forEach(([bx, bz]) => { if (r() < (Q.soft ? 0.1 : 0.35)) for (let i = 0; i < 4; i++) trees.push([bx - BLOCK / 2 - 0.6, bz - BLOCK / 2 + 1.2 + i * 2.5]); });
+  const canopyGeo = new THREE.IcosahedronGeometry(1, Q.soft ? 0 : 1);
   const canopyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true });
   const canopy = new THREE.InstancedMesh(canopyGeo, canopyMat, trees.length);
   const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.06, 0.09, 1, 5).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: C("#4A3830"), roughness: 1 }), trees.length);
@@ -724,7 +733,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const CARS = Q.cars;
   const cars = [], cr = rng(99);
   const carColors = ["#F2F0EE", "#1B1A1C", "#8A8C90", "#5E1028", "#2C2F36", "#C9C4BE"].map(C);
-  const carGeo = new RoundedBoxGeometry(0.34, 0.2, 0.78, 2, 0.06);
+  const carGeo = Q.soft ? new THREE.BoxGeometry(0.34, 0.2, 0.78) : new RoundedBoxGeometry(0.34, 0.2, 0.78, 2, 0.06);
   const carMesh = new THREE.InstancedMesh(carGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.5 }), CARS);
   for (let i = 0; i < CARS; i++) {
     const onJulio = i < CARS * 0.62, dir = cr() < 0.5 ? 1 : -1;
@@ -776,7 +785,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const rHemi = new THREE.HemisphereLight(0xffffff, 0x3a2a2a, 0.5); room.add(rHemi);
   const rSun = new THREE.DirectionalLight(0xFFE2C2, 3);
   rSun.position.set(-7, 4.2, 1.2); rSun.target.position.set(0, 0, -2); room.add(rSun, rSun.target);
-  rSun.castShadow = true;
+  rSun.castShadow = !Q.soft;
   rSun.shadow.mapSize.set(HQ ? 2048 : 1024, HQ ? 2048 : 1024);
   Object.assign(rSun.shadow.camera, { left: -5, right: 5, top: 5, bottom: -5, near: 0.5, far: 20 });
   rSun.shadow.bias = -0.0004; rSun.shadow.normalBias = 0.02; rSun.shadow.radius = 6;
@@ -1152,6 +1161,16 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     room.background = pick("windowSky", m);
     if (full) { paintSkyline(m); refreshEnv(); }
   }
+  // Sin aceleración: los materiales con reflejos pasan a un sombreado simple (mismo color, mucho más liviano)
+  if (Q.soft) {
+    const swap = new Map();
+    city.traverse(o => {
+      if (!o.isMesh || !o.material || !o.material.isMeshStandardMaterial || o.material.onBeforeCompile.toString().includes("uNight")) return;
+      const m = o.material;
+      if (!swap.has(m)) { const l = new THREE.MeshLambertMaterial({ map: m.map, transparent: m.transparent, opacity: m.opacity, side: m.side, vertexColors: m.vertexColors, flatShading: m.flatShading }); l.color = m.color; l.emissive = m.emissive; Object.defineProperty(l, "emissiveIntensity", { get: () => m.emissiveIntensity, set: v => { m.emissiveIntensity = v; } }); swap.set(m, l); }
+      o.material = swap.get(m);
+    });
+  }
   applyTheme(state.night, true);
 
   // Exposición de cada escena
@@ -1185,14 +1204,15 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     snapshot();
   }
   let snapTimer = 0;
+  function setDpr(d) { renderer.setPixelRatio(d); renderer.setSize(lastW, lastH, false); }
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h || (w === lastW && h === lastH)) return;
     // En el celular la barra del navegador cambia el alto: si solo cambia un poco, no se toca el lienzo
     if (mobile && w === lastW && Math.abs(h - lastH) < 140) return;
     lastW = w; lastH = h;
-    renderer.setPixelRatio(dprFor(w, h));
-    renderer.setSize(w, h, false);
+    if (soft) soft.hi = false;
+    setDpr(dprFor(w, h));
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 64 : 50;
     camera.updateProjectionMatrix();
@@ -1200,34 +1220,38 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     clearTimeout(snapTimer); snapTimer = setTimeout(() => { if (running) { snapshot(); dirty = true; } }, 200);
   }
   let lastW = 0, lastH = 0, dirty = true, running = false;
+  const soft = Q.soft ? { hi: false, idle: 0 } : null;
   resize();
   addEventListener("resize", resize);
   if (!mobile) addEventListener("pointermove", e => { state.mx = e.clientX / innerWidth - 0.5; state.my = e.clientY / innerHeight - 0.5; });
 
   const v3 = new THREE.Vector3(), lastCam = new THREE.Matrix4();
   let labelEls = [], lastPaint = state.night, visible = true, last = performance.now();
-  const gov = { t: 0, n: 0, steps: 0 };
+  const gov = { t: 0, n: 0, steps: 0, start: 0 };
   const AUTO_LEN = 28; // segundos de cada vuelta del recorrido automático en mobile
 
   function frame(now) {
     if (!running) return;
     requestAnimationFrame(frame);
     if (!visible) { last = now; return; }
-    const raw = (now - last) / 1000, dt = Math.min(0.05, raw); last = now;
+    const raw = (now - last) / 1000, dt = Math.min(0.05, raw), sdt = Math.min(0.25, raw); last = now; // sdt: suavizado según el tiempo real
     state.time += dt;
-    // Control de rendimiento: mide cuadros reales de la ciudad y baja la resolución si no alcanzan
-    if (!state.auto && state.time > 3 && state.pShown < CUT && raw < 0.5) {
+    // Control de rendimiento: mide los cuadros dibujados en la ciudad y baja la resolución si no alcanzan
+    if (!gov.start) gov.start = now;
+    if (gov.drew && !state.auto && now - gov.start > 2500 && state.pShown < CUT && raw < 1.5) {
       gov.t += raw; gov.n++;
       if (gov.t > 1.5) {
         const fps = gov.n / gov.t; gov.t = gov.n = 0;
-        if (fps < 45 && gov.steps < 3) { gov.steps++; dprScale *= 0.8; lastW = 0; resize(); }
+        if (fps < (Q.minFps || 45) && gov.steps < (Q.soft ? 4 : 3)) { gov.steps++; dprScale *= 0.8; lastW = 0; resize(); }
       }
     }
+    gov.drew = false;
     if (state.auto) {
       if (!reduce) state.autoT = (state.autoT + dt / AUTO_LEN) % 1;
       state.p = state.pShown = state.autoT;
     } else {
-      state.pShown = reduce ? state.p : lerp(state.pShown, state.p, 1 - Math.pow(0.0015, dt));
+      state.pShown = reduce ? state.p : lerp(state.pShown, state.p, 1 - Math.pow(0.0015, sdt));
+      if (Math.abs(state.pShown - state.p) < 2e-5) state.pShown = state.p; // se asienta: permite dejar de dibujar
     }
     if (Math.abs(state.night - state.nightTarget) > 0.001) {
       state.night = lerp(state.night, state.nightTarget, 1 - Math.pow(0.02, dt));
@@ -1243,14 +1267,15 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     if (!inRoom) {
       let rl;
       [pos, look, rl] = fly(CITY_POS, CITY_LOOK, p / CUT);
-      roll = lerp(roll, rl, 0.08);
-      if (!reduce) { const idle = 1 - clamp01(p / 0.06); pos.add(V(Math.sin(state.time * 0.15) * 6 * idle, 0, Math.cos(state.time * 0.15) * 4 * idle)); }
-      moveCars(dt); moveFlights(reduce ? 12 : state.time); skyMat.uniforms.uTime.value = state.time;
-      if (!reduce) { waveN.offset.x += dt * 0.012; waveN.offset.y += dt * 0.02; boats.forEach((b, i) => { b.position.z += dt * (0.8 + i * 0.2); if (b.position.z > 260) b.position.z = -260; }); }
+      roll = lerp(roll, rl, 1 - Math.pow(0.006, sdt)); if (Math.abs(roll - rl) < 2e-4) roll = rl;
+      if (!reduce && !Q.soft) { const idle = 1 - clamp01(p / 0.06); pos.add(V(Math.sin(state.time * 0.15) * 6 * idle, 0, Math.cos(state.time * 0.15) * 4 * idle)); }
+      if (!Q.soft) moveCars(dt);
+      moveFlights(reduce ? 12 : Q.soft ? 20 : state.time); skyMat.uniforms.uTime.value = Q.soft ? 0 : state.time;
+      if (!reduce && !Q.soft) { waveN.offset.x += dt * 0.012; waveN.offset.y += dt * 0.02; boats.forEach((b, i) => { b.position.z += dt * (0.8 + i * 0.2); if (b.position.z > 260) b.position.z = -260; }); }
     } else {
       let rl;
       [pos, look, rl] = fly(ROOM_POS, ROOM_LOOK, (p - CUT) / (1 - CUT));
-      roll = lerp(roll, rl * 0.3, 0.08);
+      roll = lerp(roll, rl * 0.3, 1 - Math.pow(0.006, sdt)); if (Math.abs(roll - rl * 0.3) < 2e-4) roll = rl * 0.3;
     }
     const par = inRoom ? 0.12 : 1.2 * clamp01(1 - p / CUT * 1.2);
     camera.position.copy(pos).add(V(state.mx * par, -state.my * par * 0.6, 0));
@@ -1264,8 +1289,18 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     // Las sombras son estáticas (se calculan una vez por escena). La habitación no tiene nada en movimiento:
     // si la cámara no se movió, el cuadro anterior sigue siendo válido y no se vuelve a dibujar.
     camera.updateMatrixWorld();
-    const still = inRoom && !dirty && lastCam.equals(camera.matrixWorld);
-    if (!still) renderer.render(scene, camera);
+    const moved = dirty || !lastCam.equals(camera.matrixWorld);
+    if (Q.soft) {
+      // Sin aceleración: mientras hay movimiento se dibuja liviano; al quedarse quieto, un único cuadro nítido
+      if (moved) {
+        soft.idle = 0;
+        if (soft.hi) { soft.hi = false; setDpr(dprFor(lastW, lastH)); }
+        renderer.render(scene, camera); gov.drew = true;
+      } else if (!soft.hi && (soft.idle += raw) > 0.22) {
+        soft.hi = true; setDpr(Math.min(1, devicePixelRatio || 1, Math.sqrt(0.9e6 / Math.max(1, lastW * lastH))));
+        renderer.render(scene, camera);
+      }
+    } else if (moved || !inRoom) { renderer.render(scene, camera); gov.drew = true; }
     lastCam.copy(camera.matrixWorld); dirty = false;
 
     // Etiquetas HTML ancladas a puntos 3D
