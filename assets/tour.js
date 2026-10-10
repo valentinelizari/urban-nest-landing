@@ -101,11 +101,25 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   const skyMat = new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false,
-    uniforms: { top: { value: pick("skyTop", 0) }, bot: { value: pick("skyBot", 0) }, sunDir: { value: V(0.55, 0.32, -0.77).normalize() }, sunAmt: { value: 1 } },
+    uniforms: { top: { value: pick("skyTop", 0) }, bot: { value: pick("skyBot", 0) }, sunDir: { value: V(0.55, 0.32, -0.77).normalize() }, sunAmt: { value: 1 }, uTime: { value: 0 }, uN: { value: 0 } },
     vertexShader: "varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
-    fragmentShader: `uniform vec3 top; uniform vec3 bot; uniform vec3 sunDir; uniform float sunAmt; varying vec3 vP;
-      void main(){ float h = clamp(vP.y*1.5+0.06,0.0,1.0); vec3 c = mix(bot, top, pow(h,0.7));
-        float s = max(dot(vP, sunDir), 0.0); c += vec3(1.0,0.78,0.55) * (pow(s, 12.0)*0.35 + pow(s, 400.0)*2.5) * sunAmt;
+    // Cielo con nubes: ruido fractal proyectado sobre un plano alto, que se mueve muy despacio
+    fragmentShader: `uniform vec3 top; uniform vec3 bot; uniform vec3 sunDir; uniform float sunAmt; uniform float uTime; uniform float uN; varying vec3 vP;
+      float hs(vec2 p){ p = fract(p * vec2(234.34, 435.345)); p += dot(p, p + 34.23); return fract(p.x * p.y); }
+      float vn(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(hs(i), hs(i + vec2(1.0, 0.0)), f.x), mix(hs(i + vec2(0.0, 1.0)), hs(i + vec2(1.0, 1.0)), f.x), f.y); }
+      float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++) { v += a * vn(p); p = p * 2.07 + vec2(3.1, 7.7); a *= 0.5; } return v; }
+      void main(){ vec3 d = normalize(vP); float h = clamp(d.y*1.5+0.06,0.0,1.0); vec3 c = mix(bot, top, pow(h,0.7));
+        float s = max(dot(d, sunDir), 0.0); c += vec3(1.0,0.78,0.55) * (pow(s, 24.0)*0.2 + pow(s, 900.0)*1.6) * sunAmt;
+        if (d.y > 0.0) {
+          vec2 uv = d.xz / (d.y + 0.08) * 0.9 + vec2(uTime * 0.006, uTime * 0.002);
+          float n = fbm(uv), n2 = fbm(uv + sunDir.xz * 0.12);
+          float cov = smoothstep(0.5, 0.78, n) * smoothstep(0.02, 0.22, d.y);
+          float lit = clamp(0.6 + (n - n2) * 3.0, 0.0, 1.0);
+          vec3 day = mix(vec3(0.78, 0.76, 0.8), vec3(1.0, 0.96, 0.93), lit) + vec3(1.0, 0.8, 0.6) * pow(s, 6.0) * 0.25;
+          vec3 night = mix(vec3(0.07, 0.04, 0.06), vec3(0.22, 0.11, 0.14), lit * 0.6 + (1.0 - smoothstep(0.0, 0.3, d.y)) * 0.5);
+          c = mix(c, mix(day, night, uN), cov * 0.88);
+        }
         gl_FragColor = vec4(c,1.0); }`,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1000, 48, 24), skyMat);
@@ -179,14 +193,30 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     if (x > 100) continue;
     blocks.push([x, z]);
   }
-  const blockInst = new THREE.InstancedMesh(new THREE.BoxGeometry(BLOCK + 0.6, 0.14, BLOCK + 0.6), blockMat, blocks.length);
-  blocks.forEach(([x, z], k) => { m4.makeTranslation(x, 0.07, z); blockInst.setMatrixAt(k, m4); });
+  // Prisma a partir de un polígono en planta (alto 0 a 1), con normales planas: ochavas de veredas y edificios
+  function prismGeo(pts) {
+    const pos = [], nor = [];
+    const tri = (a, b, c, n) => { if (b.clone().sub(a).cross(c.clone().sub(a)).dot(n) < 0) { const t = b; b = c; c = t; } for (const v of [a, b, c]) { pos.push(v.x, v.y, v.z); nor.push(n.x, n.y, n.z); } };
+    for (let i = 0; i < pts.length; i++) {
+      const [x1, z1] = pts[i], [x2, z2] = pts[(i + 1) % pts.length];
+      const n = V(z2 - z1, 0, x1 - x2).normalize(); if (n.dot(V((x1 + x2) / 2, 0, (z1 + z2) / 2)) < 0) n.negate();
+      tri(V(x1, 0, z1), V(x2, 0, z2), V(x2, 1, z2), n); tri(V(x1, 0, z1), V(x2, 1, z2), V(x1, 1, z1), n);
+    }
+    for (let i = 1; i < pts.length - 1; i++) tri(V(pts[0][0], 1, pts[0][1]), V(pts[i][0], 1, pts[i][1]), V(pts[i + 1][0], 1, pts[i + 1][1]), V(0, 1, 0));
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+    return g;
+  }
+  const oc = 0.085;
+  const plateGeo = prismGeo([[-.5 + oc, -.5], [.5 - oc, -.5], [.5, -.5 + oc], [.5, .5 - oc], [.5 - oc, .5], [-.5 + oc, .5], [-.5, .5 - oc], [-.5, -.5 + oc]]).scale(BLOCK + 0.6, 0.14, BLOCK + 0.6);
+  const blockInst = new THREE.InstancedMesh(plateGeo, blockMat, blocks.length);
+  blocks.forEach(([x, z], k) => { m4.makeTranslation(x, 0, z); blockInst.setMatrixAt(k, m4); });
   blockInst.receiveShadow = true; city.add(blockInst);
 
   // Demarcación de carriles en la 9 de Julio
   const lineMat = new THREE.MeshBasicMaterial({ color: C("#E9E1D8"), transparent: true, opacity: 0.55 });
   const dashes = [];
-  for (let z = -ext; z <= ext; z += 2.4) for (const x of [-6.6, -5.9, 5.9, 6.6, -2.2, 2.2]) dashes.push([x, z]);
+  for (let z = -ext; z <= ext; z += 2.4) for (const x of [-6.6, -5.9, 5.9, 6.6, -2.2, 2.2]) if (Math.abs(x) > 3 || Math.abs(z) > 6) dashes.push([x, z]);
   const dashInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.06, 1.1), lineMat, dashes.length);
   dashes.forEach(([x, z], k) => { q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)); m4.compose(V(x, 0.02, z), q, s3); dashInst.setMatrixAt(k, m4); });
   city.add(dashInst);
@@ -198,26 +228,51 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     s.position.set(off, 0.08, 0); s.receiveShadow = true; city.add(s);
   }
   const plazaMat = new THREE.MeshStandardMaterial({ color: C("#E4D2C4"), roughness: 0.9 });
-  const plaza = new THREE.Mesh(new THREE.CylinderGeometry(5.4, 5.4, 0.18, 64), plazaMat);
+  const plaza = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.0, 0.18, 64), plazaMat);
   plaza.position.set(0, 0.09, 0); plaza.receiveShadow = true; city.add(plaza);
 
   // Edificios: una malla instanciada con fachadas procedurales en el shader.
   const HERO = { x: -3 * PITCH, z: 3.9, w: 6.2, d: 4.6, floors: 16 };
-  const FLOOR = 0.42;
+  const FLOOR = 0.42, E = BLOCK / 2, D = 3.0;
+  // Nuestros departamentos de Palermo y Las Cañitas, sobre la línea de frente de su manzana
+  const SPOTS = { acu: V(-4 * PITCH, 0, -4.5 * PITCH - E + 2), oll: V(-8 * PITCH, 0, -8.5 * PITCH - E + 2) };
+  const reserved = [[HERO.x, HERO.z, HERO.w / 2 + 0.2, HERO.d / 2 + 0.2], [SPOTS.acu.x, SPOTS.acu.z, 2.2, 2.2], [SPOTS.oll.x, SPOTS.oll.z, 2.2, 2.2]];
+  // Diagonal Norte: sale del Obelisco y corta las manzanas en dirección a Plaza de Mayo
+  const DIAG = { x0: 6, z0: 3.5, dx: 0.8, dz: 0.6, len: 84, w: 2.6 };
+  const onDiag = (x, z, rad) => { const px = x - DIAG.x0, pz = z - DIAG.z0, t = px * DIAG.dx + pz * DIAG.dz; return t > -rad && t < DIAG.len + rad && Math.abs(px * DIAG.dz - pz * DIAG.dx) < DIAG.w / 2 + rad; };
+  const PLAZA_MAYO = [6 * PITCH, 4.5 * PITCH], ROSADA = [7 * PITCH, 4.5 * PITCH];
+  const near = (a, x, z) => Math.abs(a[0] - x) < 0.1 && Math.abs(a[1] - z) < 0.1;
+  const free = (x, z, w, d) => !reserved.some(([rx, rz, hw, hd]) => Math.abs(x - rx) < hw + w / 2 && Math.abs(z - rz) < hd + d / 2) && !onDiag(x, z, Math.min(w, d) * 0.45);
+  const split = (len, n) => { const ws = Array.from({ length: n }, () => 0.7 + r() * 0.6), t = ws.reduce((a, b) => a + b, 0); return ws.map(v => v / t * len); };
+  // Caras con ventanas (máscara): 1 = +x, 2 = -x, 4 = +z, 8 = -z. Las medianeras quedan ciegas.
+  // Ochava: 0 = esquina +x+z, 1 = +x-z, 2 = -x-z, 3 = -x+z
   const lots = [];
+  const addLot = (x, z, w, d, mask, cham, dist) => {
+    if (!free(x, z, w, d) || r() < 0.025) return;
+    let floors = Math.round(lerp(3, 13, Math.pow(r(), 1.25)) * (dist < 60 ? 1.1 : dist < 100 ? 0.9 : 0.75));
+    if (dist < 30 && r() < 0.3) floors += 6;
+    if (r() < 0.07) floors = 2 + Math.floor(r() * 2); // casas bajas entre edificios
+    lots.push({ x, z, w, d, h: Math.max(2, floors) * FLOOR + 0.3, mask, cham, tower: false, seed: r() });
+  };
   blocks.forEach(([bx, bz]) => {
     const dist = Math.hypot(bx, bz);
-    const split = r() < 0.5 ? 2 : 3, lw = BLOCK / split;
-    for (let a = 0; a < split; a++) for (let b = 0; b < 2; b++) {
-      const lx = bx - BLOCK / 2 + lw * (a + 0.5), lz = bz - BLOCK / 2 + (BLOCK / 2) * (b + 0.5);
-      if (Math.abs(lx - HERO.x) < HERO.w / 2 + 1.2 && Math.abs(lz - HERO.z) < HERO.d / 2 + 1.2) continue;
-      if (r() < 0.05) continue;
-      let floors = Math.round(lerp(4, 14, Math.pow(r(), 1.4)) * (dist < 60 ? 1.15 : dist < 100 ? 0.85 : 0.65));
-      let tower = false;
-      if (bx > 60 && r() < 0.35) { floors = Math.round(lerp(24, 46, r())); tower = true; }
-      if (dist < 30 && r() < 0.25) floors += 8;
-      floors = Math.max(3, floors);
-      lots.push({ x: lx, z: lz, w: lw - 0.45 - r() * 0.35, d: BLOCK / 2 - 0.45 - r() * 0.35, h: floors * FLOOR + 0.3, tower, seed: r() });
+    if (near(PLAZA_MAYO, bx, bz)) return;
+    if (near(ROSADA, bx, bz)) { lots.push({ x: bx, z: bz, w: 8.6, d: 7.4, h: 3 * FLOOR + 0.5, mask: 15, cham: -1, tower: false, seed: 0.31, col: C("#D9A39C") }); return; }
+    // Catalinas y la costa: torres exentas en su manzana
+    if (bx > 60 && r() < 0.32) { const tw = 4 + r() * 2.4, td = 4 + r() * 2.4; if (free(bx, bz, tw, td)) lots.push({ x: bx, z: bz, w: tw, d: td, h: Math.round(lerp(24, 46, r())) * FLOOR + 0.3, mask: 15, cham: -1, tower: true, seed: r() }); return; }
+    for (const sd of [-1, 1]) {
+      const ws = split(BLOCK, 3 + (r() < 0.55 ? 1 : 0));
+      let x0 = bx - E;
+      ws.forEach((w, i) => {
+        const first = i === 0, last = i === ws.length - 1;
+        const mask = 12 | (first ? 2 : 0) | (last ? 1 : 0);
+        const cham = first ? (sd < 0 ? 2 : 3) : last ? (sd < 0 ? 1 : 0) : -1;
+        addLot(x0 + w / 2, bz + sd * (E - D / 2), w - 0.03, D, mask, cham, dist);
+        x0 += w;
+      });
+      const zs = split(BLOCK - 2 * D, r() < 0.5 ? 1 : 2);
+      let z0 = bz - E + D;
+      zs.forEach(d => { addLot(bx + sd * (E - D / 2), z0 + d / 2, D, d - 0.03, 3, -1, dist); z0 += d; });
     }
   });
   const facade = ["#E9E1D8", "#D9CFC6", "#CDBFB6", "#E5D7D0", "#BFB2AE", "#D6C3BE", "#EFE6DE", "#C7B9B9", "#B9A9A2", "#DCCCC0"].map(C);
@@ -230,22 +285,22 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       sh.uniforms.uNight = uNight; sh.uniforms.uTop = { value: top }; sh.uniforms.uAmb = uAmb;
       sh.vertexShader = sh.vertexShader
         .replace("#include <common>", `#include <common>
-          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; uniform float uTop;
+          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; flat varying float vWin; uniform float uTop;
           #ifdef USE_INSTANCING
-            attribute float aSeed; attribute float aTop;
+            attribute float aSeed; attribute float aTop; attribute float aWin;
           #endif`)
         .replace("#include <project_vertex>", `#include <project_vertex>
           mat4 unM = modelMatrix;
           #ifdef USE_INSTANCING
-            unM = modelMatrix * instanceMatrix; vSeed = aSeed; vTop = aTop;
+            unM = modelMatrix * instanceMatrix; vSeed = aSeed; vTop = aTop; vWin = aWin;
           #else
-            vSeed = 0.37; vTop = uTop;
+            vSeed = 0.37; vTop = uTop; vWin = 15.0;
           #endif
           vWP = (unM * vec4(transformed, 1.0)).xyz;
           vWN = normalize(mat3(unM) * objectNormal);`);
       sh.fragmentShader = sh.fragmentShader
         .replace("#include <common>", `#include <common>
-          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; uniform float uNight; uniform vec3 uAmb;
+          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; flat varying float vWin; uniform float uNight; uniform vec3 uAmb;
           float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
           // Banda suavizada según el tamaño del píxel: sin serrucho ni titileo al moverse
           float band(float x, float a, float b, float w){ return smoothstep(a - w, a + w, x) * (1.0 - smoothstep(b - w, b + w, x)); }`)
@@ -265,12 +320,15 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           float lod = max(smoothstep(320.0, 640.0, dist), smoothstep(mix(0.13, 0.09, tower), mix(0.3, 0.22, tower), px));
           float detail = (1.0 - smoothstep(18.0, 45.0, dist)) * (1.0 - smoothstep(0.035, 0.07, px));
           float inX = band(f.x, gw, 1.0 - gw, aa.x), inY = band(f.y, 0.26, 0.86, aa.y);
-          float win = inX * inY * step(0.0, cell.y) * wall;
+          // Medianeras: las caras que dan a un vecino no tienen ventanas
+          float faceBit = abs(vWN.x) > abs(vWN.z) ? (vWN.x > 0.0 ? 1.0 : 2.0) : (vWN.z > 0.0 ? 4.0 : 8.0);
+          float hasWin = mod(floor(vWin / faceBit + 0.001), 2.0);
+          float win = inX * inY * step(0.0, cell.y) * wall * hasWin;
           // Marco, parteluz, alféizar y cortinas: solo de cerca, donde se distinguen
           float frameIn = band(f.x, gw + 0.045, 1.0 - gw - 0.045, aa.x) * band(f.y, 0.3, 0.82, aa.y);
           float frame = win * (1.0 - frameIn) * detail * (1.0 - tower);
           float mull = win * (1.0 - smoothstep(0.012, 0.012 + aa.x * 2.0, abs(f.x - 0.5))) * detail * (1.0 - tower);
-          float sill = band(f.x, gw - 0.03, 1.0 - gw + 0.03, aa.x) * band(f.y, 0.215, 0.26, aa.y) * step(0.0, cell.y) * wall * detail;
+          float sill = band(f.x, gw - 0.03, 1.0 - gw + 0.03, aa.x) * band(f.y, 0.215, 0.26, aa.y) * step(0.0, cell.y) * wall * detail * hasWin;
           float kc = h21(floor(cell) * 2.3 + sd * 5.0);
           float curtainH = kc < 0.55 ? mix(0.2, 0.5, kc / 0.55) : 0.0;
           float curtain = win * frameIn * smoothstep(0.82 - curtainH - aa.y, 0.82 - curtainH + aa.y, f.y) * detail * (1.0 - tower);
@@ -285,11 +343,11 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           win *= 1.0 - cornice;
           frame *= 1.0 - cornice; mull *= 1.0 - cornice; curtain *= 1.0 - cornice; sill *= 1.0 - cornice;
           // Planta baja: locales
-          float shop = wall * (1.0 - step(0.3, vWP.y - 0.14)) * step(0.06, vWP.y - 0.14) * step(0.12, fract(fu.x / 1.6)) * step(fract(fu.x / 1.6), 0.88);
+          float shop = wall * hasWin * (1.0 - step(0.3, vWP.y - 0.14)) * step(0.06, vWP.y - 0.14) * step(0.12, fract(fu.x / 1.6)) * step(fract(fu.x / 1.6), 0.88);
           float rnd = h21(floor(cell) + sd * 31.0 + floor(vWN.xz + 0.5) * 11.0);
           float lit = mix(step(mix(0.68, 0.72, tower), rnd), mix(0.09, 0.06, tower), lod);
           // A la distancia la grilla se reemplaza por su promedio: así no aparece efecto moiré
-          float winAvg = mix(0.34, 0.75, tower) * wall * step(0.0, cell.y) * (1.0 - cornice);
+          float winAvg = mix(0.34, 0.75, tower) * wall * step(0.0, cell.y) * (1.0 - cornice) * hasWin;
           float gvar = mix(h21(floor(cell) * 0.7 + sd), 0.5, max(lod, smoothstep(0.03, 0.09, px)));
           vec3 glassDay = mix(vec3(0.24, 0.29, 0.36), vec3(0.42, 0.5, 0.6), gvar);
           // Torres: vidrio con tono propio (azulado, bronce, plata o grafito) que se aclara hacia arriba
@@ -303,7 +361,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           vec3 glass = mix(glassDay, vec3(0.03, 0.025, 0.04), uNight);
           // Oclusión aproximada: más oscuro cerca del suelo
           float ao = mix(0.6, 1.0, smoothstep(0.0, 2.5, vWP.y));
-          diffuseColor.rgb *= ao * mix(1.0, 0.5, uNight);
+          diffuseColor.rgb *= ao * mix(1.0, 0.5, uNight) * mix(0.9, 1.0, max(hasWin, 1.0 - wall));
           float glassAmt = mix(win * (1.0 - frame) * (1.0 - mull) * (1.0 - curtain), winAvg, lod);
           vec3 wallC = diffuseColor.rgb;
           diffuseColor.rgb = mix(diffuseColor.rgb, glass, clamp(glassAmt * 0.85 + shop * 0.8, 0.0, 1.0));
@@ -333,44 +391,53 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           float shopLit = step(0.45, h21(vec2(floor(fu.x / 1.6), sd * 9.0)));
           totalEmissiveRadiance += shop * shopLit * vec3(1.0, 0.8, 0.55) * uNight * 1.0;`);
     };
-    mtl.customProgramCacheKey = () => "facade3" + (light ? "L" : "");
+    mtl.customProgramCacheKey = () => "facade4" + (light ? "L" : "");
     return mtl;
   }
   const bGeo = new THREE.BoxGeometry(1, 1, 1); bGeo.translate(0, 0.5, 0);
-  // Volúmenes: cada lote más, en algunos, un retiro superior
-  const vols = [];
+  const CH = 0.27, chamGeo = prismGeo([[-.5, -.5], [.5, -.5], [.5, .5 - CH], [.5 - CH, .5], [-.5, .5]]);
+  const towerCols = ["#9FA6AE", "#B4B8BD", "#8D97A2", "#C4BDB6", "#A8A19F"].map(C);
+  // Volúmenes: cada lote y, en algunos, los últimos pisos retirados de la línea de frente
+  const vols = [], chams = [];
   lots.forEach((l, k) => {
-    const col = l.tower ? C("#9FA6AE") : facade[(k * 7 + Math.floor(l.h * 3)) % facade.length];
-    vols.push({ x: l.x, z: l.z, w: l.w, d: l.d, y: 0.14, h: l.h, seed: l.seed + (l.tower ? 2 : 0), col });
+    const col = l.col || (l.tower ? towerCols[k % towerCols.length] : facade[(k * 7 + Math.floor(l.h * 3)) % facade.length]);
+    (l.cham >= 0 ? chams : vols).push({ x: l.x, z: l.z, w: l.w, d: l.d, y: 0.14, h: l.h, seed: l.seed + (l.tower ? 2 : 0), col, mask: l.mask, cham: l.cham });
     l.roof = l.h + 0.14;
-    if (!l.tower && l.h > 3.6 && r() < 0.42) {
-      const hh = FLOOR * (2 + Math.floor(r() * 3)) + 0.1;
-      vols.push({ x: l.x + (r() - 0.5) * l.w * 0.15, z: l.z + (r() - 0.5) * l.d * 0.15, w: l.w * 0.68, d: l.d * 0.68, y: l.roof, h: hh, seed: l.seed, col: col.clone().multiplyScalar(1.04) });
+    if (!l.tower && !l.col && l.h > 2.6 && r() < 0.45) {
+      const hh = FLOOR * (1 + Math.floor(r() * 2)) + 0.1;
+      vols.push({ x: l.x, z: l.z, w: l.w * 0.84, d: l.d * 0.68, y: l.roof, h: hh, seed: l.seed, col: col.clone().multiplyScalar(1.05), mask: l.mask, cham: -1 });
       l.roof += hh;
     }
   });
-  const bGeoI = bGeo.clone();
-  const seeds = new Float32Array(vols.length), tops = new Float32Array(vols.length);
-  vols.forEach((v, k) => { seeds[k] = v.seed; tops[k] = v.y + v.h; });
-  bGeoI.setAttribute("aSeed", new THREE.InstancedBufferAttribute(seeds, 1));
-  bGeoI.setAttribute("aTop", new THREE.InstancedBufferAttribute(tops, 1));
+  const UPV = V(0, 1, 0), sc3 = V(1, 1, 1);
+  function buildInst(geo, list, mat) {
+    const g = geo.clone(), n = list.length;
+    const sA = new Float32Array(n), tA = new Float32Array(n), wA = new Float32Array(n);
+    list.forEach((v, k) => { sA[k] = v.seed; tA[k] = (v.y ?? 0.14) + v.h; wA[k] = v.mask ?? 15; });
+    g.setAttribute("aSeed", new THREE.InstancedBufferAttribute(sA, 1));
+    g.setAttribute("aTop", new THREE.InstancedBufferAttribute(tA, 1));
+    g.setAttribute("aWin", new THREE.InstancedBufferAttribute(wA, 1));
+    const inst = new THREE.InstancedMesh(g, mat, n);
+    list.forEach((v, k) => {
+      const c = v.cham ?? -1, swap = c === 1 || c === 3;
+      q.setFromAxisAngle(UPV, c >= 0 ? [0, Math.PI / 2, Math.PI, -Math.PI / 2][c] : 0);
+      m4.compose(p3.set(v.x, v.y ?? 0.14, v.z), q, sc3.set(swap ? v.d : v.w, v.h, swap ? v.w : v.d));
+      inst.setMatrixAt(k, m4); inst.setColorAt(k, v.col);
+    });
+    return inst;
+  }
   const bMat = facadeMaterial(0xffffff);
-  const bInst = new THREE.InstancedMesh(bGeoI, bMat, vols.length);
-  vols.forEach((v, k) => {
-    m4.makeScale(v.w, v.h, v.d); m4.setPosition(v.x, v.y, v.z);
-    bInst.setMatrixAt(k, m4); bInst.setColorAt(k, v.col);
-  });
-  bInst.castShadow = bInst.receiveShadow = HQ;
-  city.add(bInst);
+  const bInst = buildInst(bGeo, vols, bMat), chamInst = buildInst(chamGeo, chams, bMat);
+  bInst.castShadow = bInst.receiveShadow = chamInst.castShadow = chamInst.receiveShadow = HQ;
+  city.add(bInst, chamInst);
   // Pase previo de profundidad: cada píxel de fachada se calcula una sola vez aunque haya edificios superpuestos
   const prepassMat = new THREE.MeshBasicMaterial({ colorWrite: false, polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 2 });
   const prepass = inst => { const pp = new THREE.InstancedMesh(inst.geometry, prepassMat, inst.count); pp.instanceMatrix = inst.instanceMatrix; pp.renderOrder = -1; city.add(pp); return pp; };
-  prepass(bInst);
+  prepass(bInst); prepass(chamInst);
 
   // Ciudad lejana: manzanas más simples hasta el horizonte, con la 9 de Julio y el aeropuerto como referencias
-  const AIR = { x: 80, z0: -560, z1: -300 };
+  const AIR = { x: 80, z0: -570, z1: -300, w: 6 }; // pista 13/31: 2.690 m por 60 m
   const farVols = [], farPlates = [], fr = rng(77);
-  const towerCols = ["#9FA6AE", "#B4B8BD", "#8D97A2", "#C4BDB6", "#A8A19F"].map(C);
   const FI = Math.ceil(FAR / PITCH);
   for (let i = -FI; i <= 7; i++) for (let j = -FI; j <= FI; j++) {
     if (i === 0) continue;
@@ -390,64 +457,112 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     }
   }
   const farPlate = new THREE.InstancedMesh(blockInst.geometry, blockMat, farPlates.length);
-  farPlates.forEach(([x, z], k) => { m4.makeTranslation(x, 0.07, z); farPlate.setMatrixAt(k, m4); });
+  farPlates.forEach(([x, z], k) => { m4.makeTranslation(x, 0, z); farPlate.setMatrixAt(k, m4); });
   city.add(farPlate);
-  const farGeo = bGeo.clone();
-  const fSeeds = new Float32Array(farVols.length), fTops = new Float32Array(farVols.length);
-  farVols.forEach((v, k) => { fSeeds[k] = v.seed; fTops[k] = 0.14 + v.h; });
-  farGeo.setAttribute("aSeed", new THREE.InstancedBufferAttribute(fSeeds, 1));
-  farGeo.setAttribute("aTop", new THREE.InstancedBufferAttribute(fTops, 1));
-  const farInst = new THREE.InstancedMesh(farGeo, facadeMaterial(0xffffff, 0, true), farVols.length);
-  farVols.forEach((v, k) => { m4.makeScale(v.w, v.h, v.d); m4.setPosition(v.x, 0.14, v.z); farInst.setMatrixAt(k, m4); farInst.setColorAt(k, v.col); });
+  const farInst = buildInst(bGeo, farVols, facadeMaterial(0xffffff, 0, true));
   city.add(farInst); prepass(farInst);
 
-  // Aeroparque sobre la costanera, al norte: pista, calles de rodaje, terminal y torre de control
+  const poolTex = radial([[0, "rgba(255,255,255,1)"], [0.3, "rgba(255,255,255,.5)"], [0.7, "rgba(255,255,255,.12)"], [1, "rgba(255,255,255,0)"]]);
+  const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, color: C("#FFB868"), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+  const floorQ0 = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
+  const numMats = [], nightOnly = [];
+  const planeGrey0 = new THREE.MeshStandardMaterial({ color: C("#9A979A"), roughness: 0.35, metalness: 0.6 });
+  // Aeroparque sobre la costanera, al norte: pista, rodajes, plataforma, terminal con mangas y torre de control
   const airport = new THREE.Group(); city.add(airport);
   const airFieldMat = new THREE.MeshStandardMaterial({ color: C("#A39791"), roughness: 1 });
   const asphaltMat = new THREE.MeshStandardMaterial({ color: C("#3B3538"), roughness: 0.9 });
+  const apronMat = new THREE.MeshStandardMaterial({ color: C("#8E8784"), roughness: 0.85 });
   const markMat = new THREE.MeshBasicMaterial({ color: C("#EFE9E4"), transparent: true, opacity: 0.85 });
-  const airLen = AIR.z1 - AIR.z0, airMid = (AIR.z0 + AIR.z1) / 2;
+  const leadMat = new THREE.MeshBasicMaterial({ color: C("#E3C877"), transparent: true, opacity: 0.8 });
+  const airLen = AIR.z1 - AIR.z0, airMid = (AIR.z0 + AIR.z1) / 2, TWY = AIR.x - 11, APX = 55;
   const slab = (w, h, d, m, x, y, z) => { const o = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); o.position.set(x, y, z); o.receiveShadow = HQ; airport.add(o); return o; };
-  slab(80, 0.06, airLen + 125, airFieldMat, 66, 0.03, airMid + 27);
-  slab(5.2, 0.05, airLen, asphaltMat, AIR.x, 0.07, airMid);
-  slab(2.4, 0.05, airLen - 30, asphaltMat, AIR.x - 9, 0.07, airMid);
-  for (let k = 0; k < 5; k++) slab(9, 0.05, 1.8, asphaltMat, AIR.x - 4.5, 0.075, AIR.z0 + 30 + k * (airLen - 60) / 4);
-  slab(22, 0.05, 90, asphaltMat, AIR.x - 24, 0.07, airMid);
-  const dashes2 = [];
-  for (let z = AIR.z0 + 14; z < AIR.z1 - 14; z += 7) dashes2.push([AIR.x, z, 0.14, 3.2]);
-  for (const zz of [AIR.z0 + 5, AIR.z1 - 5]) for (let k = -4; k <= 4; k++) if (k) dashes2.push([AIR.x + k * 0.5, zz, 0.22, 4]);
-  const markInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), markMat, dashes2.length);
-  dashes2.forEach(([x, z, w, d], k) => { q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)); m4.compose(V(x, 0.1, z), q, V(w, d, 1)); markInst.setMatrixAt(k, m4); });
+  slab(80, 0.06, airLen + 140, airFieldMat, 66, 0.03, airMid + 30);
+  slab(AIR.w, 0.05, airLen, asphaltMat, AIR.x, 0.07, airMid);
+  slab(2.4, 0.05, airLen - 24, asphaltMat, TWY, 0.07, airMid);
+  for (let k = 0; k < 5; k++) slab(AIR.x - TWY, 0.05, 2, asphaltMat, (AIR.x + TWY) / 2, 0.075, AIR.z0 + 14 + k * (airLen - 28) / 4);
+  slab(18, 0.05, 104, apronMat, APX, 0.07, airMid);
+  slab(4, 0.05, 2.4, apronMat, TWY - 2.6, 0.075, airMid - 6);
+  // Costanera: avenida entre el aeropuerto y el río
+  slab(3.2, 0.05, airLen + 140, asphaltMat, 104.6, 0.08, airMid + 30);
+  // Marcas de pista: eje, bordes, umbrales, zona de contacto y numeración
+  const marks = [];
+  for (let z = AIR.z0 + 16; z < AIR.z1 - 16; z += 7) marks.push([AIR.x, z, 0.16, 3.4]);
+  for (const sg of [-1, 1]) marks.push([AIR.x + sg * (AIR.w / 2 - 0.25), airMid, 0.12, airLen - 2]);
+  for (const zz of [AIR.z0 + 4, AIR.z1 - 4]) for (let k = -4; k <= 4; k++) if (k) marks.push([AIR.x + k * 0.62, zz, 0.26, 4.2]);
+  for (const [z0, dir] of [[AIR.z1, -1], [AIR.z0, 1]]) for (const d of [22, 34, 46]) for (const sg of [-1, 1]) marks.push([AIR.x + sg * 1.5, z0 + dir * d, 0.4, 2.6]);
+  const markInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), markMat, marks.length);
+  marks.forEach(([x, z, w, d], k) => { m4.compose(V(x, 0.1, z), floorQ0, V(w, d, 1)); markInst.setMatrixAt(k, m4); });
   airport.add(markInst);
+  const numTex = txt => canvasTex(128, 192, (g, w, h) => { g.clearRect(0, 0, w, h); g.fillStyle = "#fff"; g.font = "bold 110px Inter, Arial, sans-serif"; g.textAlign = "center"; g.fillText(txt, w / 2, 150); }, false);
+  [["13", AIR.z1 - 13, 0], ["31", AIR.z0 + 13, Math.PI]].forEach(([t, z, ry]) => {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(3, 4.5), new THREE.MeshBasicMaterial({ map: numTex(t), transparent: true, opacity: 0.85, depthWrite: false }));
+    m.rotation.set(-Math.PI / 2, 0, ry); m.position.set(AIR.x, 0.11, z); airport.add(m); numMats.push(m.material);
+  });
+  // Líneas guía de cada puesto de estacionamiento
+  const GATES = [-27, -9, 9, 27];
+  const leads = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), leadMat, GATES.length);
+  GATES.forEach((gz, k) => { m4.compose(V(APX + 2, 0.1, airMid + gz), floorQ0, V(16, 0.12, 1)); leads.setMatrixAt(k, m4); });
+  airport.add(leads);
+  // Terminal de vidrio con techo volado, mangas telescópicas y hangares
   const termMat = new THREE.MeshStandardMaterial({ color: C("#E7E0DA"), roughness: 0.6 });
   const termGlass = new THREE.MeshStandardMaterial({ color: C("#3E4A58"), roughness: 0.1, metalness: 0.6, emissive: C("#FFD9A8"), emissiveIntensity: 0 });
-  slab(7, 2.6, 70, termMat, AIR.x - 42, 1.3, airMid).castShadow = HQ;
-  slab(7.15, 1.2, 70.1, termGlass, AIR.x - 42, 1.2, airMid);
-  slab(9, 0.25, 72, termMat, AIR.x - 41, 2.7, airMid);
-  [-1, 1].forEach(sg => { const hg = new THREE.Mesh(new THREE.CylinderGeometry(4, 4, 14, 24, 1, false, 0, Math.PI), termMat); hg.rotation.z = Math.PI / 2; hg.position.set(AIR.x - 38, 0, airMid + sg * 70); airport.add(hg); });
-  const towerG = new THREE.Group(); towerG.position.set(AIR.x - 30, 0, airMid - 52); airport.add(towerG);
-  const tShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.85, 10, 16), termMat); tShaft.position.y = 5; towerG.add(tShaft);
-  const tCab = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.2, 1.5, 16), termGlass); tCab.position.y = 10.7; towerG.add(tCab);
-  const tCap = new THREE.Mesh(new THREE.CylinderGeometry(1.65, 1.65, 0.25, 16), termMat); tCap.position.y = 11.6; towerG.add(tCap);
-  // Balizas de pista: piezas reales al ras del suelo, encendidas de noche
+  slab(7, 2.8, 84, termMat, 39.5, 1.4, airMid).castShadow = HQ;
+  slab(7.1, 1.6, 84.1, termGlass, 39.5, 1.5, airMid);
+  slab(10, 0.22, 88, termMat, 40.2, 2.92, airMid).castShadow = HQ;
+  GATES.forEach(gz => {
+    const b = slab(5, 0.5, 0.65, termMat, 45.6, 1.15, airMid + gz); b.castShadow = HQ;
+    slab(0.5, 1.0, 0.5, planeGrey0, 47.6, 0.5, airMid + gz);
+  });
+  [-1, 1].forEach(sg => { const hg = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.2, 14, 24, 1, false, 0, Math.PI), termMat); hg.rotation.z = Math.PI / 2; hg.position.set(40, 0.06, airMid + sg * 64); hg.castShadow = HQ; airport.add(hg); });
+  // Torre de control con balcón y antena
+  const towerG = new THREE.Group(); towerG.position.set(50, 0, airMid + 58); airport.add(towerG);
+  const tShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.9, 13, 16), termMat); tShaft.position.y = 6.5; tShaft.castShadow = HQ; towerG.add(tShaft);
+  const tRing = new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 0.18, 24), termMat); tRing.position.y = 13.1; towerG.add(tRing);
+  const tCab = new THREE.Mesh(new THREE.CylinderGeometry(1.55, 1.25, 1.5, 16), termGlass); tCab.position.y = 13.95; towerG.add(tCab);
+  const tCap = new THREE.Mesh(new THREE.CylinderGeometry(1.75, 1.75, 0.25, 16), termMat); tCap.position.y = 14.8; towerG.add(tCap);
+  const tAnt = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.2, 6), planeGrey0); tAnt.position.y = 16; towerG.add(tAnt);
+  // Vehículos de plataforma junto a los aviones
+  const gse = [];
+  GATES.forEach((gz, i) => { if (i !== 1) gse.push([APX - 1, airMid + gz + 3.5, 0.9, 0.6, 1.6], [APX + 3, airMid + gz - 3.2, 0.7, 0.5, 1.1]); });
+  const gseInst = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.6 }), gse.length);
+  gse.forEach(([x, z, w, h, d], k) => { m4.makeScale(w, h, d); m4.setPosition(x, 0.07, z); gseInst.setMatrixAt(k, m4); gseInst.setColorAt(k, k % 2 ? C("#F1ECE6") : C("#8B1D3D")); });
+  airport.add(gseInst);
+  // Balizas de pista y de aproximación: piezas al ras del suelo, encendidas de noche
   const edgeLights = [];
-  for (let z = AIR.z0 + 2; z <= AIR.z1 - 2; z += 6) edgeLights.push([AIR.x - 2.75, z], [AIR.x + 2.75, z]);
-  for (let k = 1; k <= 8; k++) edgeLights.push([AIR.x, AIR.z1 + k * 4], [AIR.x - 1.4, AIR.z1 + k * 4], [AIR.x + 1.4, AIR.z1 + k * 4]);
+  for (let z = AIR.z0 + 2; z <= AIR.z1 - 2; z += 6) edgeLights.push([AIR.x - AIR.w / 2 - 0.15, z], [AIR.x + AIR.w / 2 + 0.15, z]);
+  for (let k = 1; k <= 10; k++) for (const dx of [-1.6, -0.8, 0, 0.8, 1.6]) if (k > 5 || Math.abs(dx) < 1) edgeLights.push([AIR.x + dx, AIR.z1 + k * 4]);
+  for (let z = AIR.z0 + 16; z <= AIR.z1 - 16; z += 8) edgeLights.push([TWY - 1.4, z], [TWY + 1.4, z]);
   const beaconMat = new THREE.MeshBasicMaterial({ color: C("#7A7072"), toneMapped: false });
   const edgeInst = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.12, 0.16), beaconMat, edgeLights.length);
   edgeLights.forEach(([x, z], k) => { m4.makeTranslation(x, 0.14, z); edgeInst.setMatrixAt(k, m4); });
   airport.add(edgeInst);
+  // Torres de iluminación de la plataforma: de noche iluminan el piso
+  const masts = [[APX + 8, airMid - 46], [APX + 8, airMid - 16], [APX + 8, airMid + 16], [APX + 8, airMid + 46]];
+  masts.forEach(([x, z]) => { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 6, 8), planeGrey0); m.position.set(x, 3, z); airport.add(m); });
+  const apronPools = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), poolMat, masts.length);
+  masts.forEach(([x, z], k) => { m4.compose(V(x - 5, 0.11, z), floorQ0, V(20, 20, 1)); apronPools.setMatrixAt(k, m4); });
+  apronPools.renderOrder = 2; airport.add(apronPools); nightOnly.push(apronPools);
 
   // Aviones: llegan por el río, aterrizan y despegan hacia el norte
   const planeWhite = new THREE.MeshStandardMaterial({ color: C("#F3F1EF"), roughness: 0.32, metalness: 0.25 });
+  // Fuselaje con la fila de ventanillas a cada lado y una franja carmesí
+  const bodyTex = canvasTex(256, 128, (g, w, h) => {
+    g.fillStyle = "#F3F1EF"; g.fillRect(0, 0, w, h);
+    for (const cx of [w * 0.25, w * 0.75]) {
+      g.fillStyle = "#8B1D3D"; g.fillRect(cx - 7, 0, 3, h);
+      g.fillStyle = "#2A2427"; for (let y = 24; y < h - 12; y += 5) g.fillRect(cx - 2, y, 4, 2.6);
+      g.fillRect(cx - 3, 6, 6, 9); // cabina, hacia la nariz
+    }
+  });
+  const planeBody = new THREE.MeshStandardMaterial({ map: bodyTex, roughness: 0.32, metalness: 0.25 });
   const planeTail = new THREE.MeshStandardMaterial({ color: C("#8B1D3D"), roughness: 0.4, metalness: 0.2 });
-  const planeGrey = new THREE.MeshStandardMaterial({ color: C("#9A979A"), roughness: 0.35, metalness: 0.6 });
+  const planeGrey = planeGrey0;
   const navWhite = new THREE.MeshBasicMaterial({ color: C("#FFFFFF"), toneMapped: false, transparent: true, opacity: 0 });
   const navRed = new THREE.MeshBasicMaterial({ color: C("#FF2244"), toneMapped: false, transparent: true, opacity: 0 });
   const wingShape = (span, root, tip, sweep) => { const sh = new THREE.Shape(); sh.moveTo(0, root / 2); sh.lineTo(span, root / 2 - sweep); sh.lineTo(span, root / 2 - sweep - tip); sh.lineTo(0, -root / 2); sh.closePath(); return sh; };
   function makePlane() {
     const g = new THREE.Group(), S = 2.4;
-    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * S, 0.2 * S, 2.6 * S, 16), planeWhite); body.rotation.x = Math.PI / 2; g.add(body);
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * S, 0.2 * S, 2.6 * S, 20), planeBody); body.rotation.x = Math.PI / 2; g.add(body);
     const nose = new THREE.Mesh(new THREE.SphereGeometry(0.2 * S, 16, 12), planeWhite); nose.scale.set(1, 1, 1.9); nose.position.z = 1.3 * S; g.add(nose);
     const tail = new THREE.Mesh(new THREE.ConeGeometry(0.2 * S, 0.9 * S, 16), planeWhite); tail.rotation.x = -Math.PI / 2; tail.position.set(0, 0.04 * S, -1.75 * S); tail.scale.set(1, 1, 0.75); g.add(tail);
     const wGeo = new THREE.ExtrudeGeometry(wingShape(1.75 * S, 0.75 * S, 0.22 * S, 0.62 * S), { depth: 0.035 * S, bevelEnabled: false });
@@ -465,31 +580,34 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     city.add(g);
     return g;
   }
-  const ARRIVE = new THREE.CatmullRomCurve3([V(240, 120, 1020), V(185, 74, 460), V(150, 42, 80), V(130, 22, AIR.z1 + 125), V(101, 7, AIR.z1 + 42), V(AIR.x, 0.75, AIR.z1 - 4), V(AIR.x, 0.75, AIR.z1 - 120), V(AIR.x, 0.75, AIR.z0 + 40)]);
-  const DEPART = new THREE.CatmullRomCurve3([V(AIR.x, 0.75, AIR.z1 - 10), V(AIR.x, 0.75, AIR.z1 - 150), V(AIR.x + 2, 6, AIR.z0 - 30), V(AIR.x + 30, 48, AIR.z0 - 320), V(AIR.x + 90, 120, AIR.z0 - 700)]);
-  // Tramo visible de la llegada: aparece detrás del punto de partida del dron y toca pista frente a la terminal
-  const uAt = test => { const pt = new THREE.Vector3(); for (let u = 0; u <= 1; u += 0.002) { ARRIVE.getPointAt(u, pt); if (test(pt)) return u; } return 1; };
-  const U_IN = uAt(pt => pt.z < 170), U_TOUCH = uAt(pt => pt.y < 1);
-  // Dos llegadas alternadas: siempre hay un avión aproximando sobre el río
+  // Llegada: aproximación sobre el río, toma de contacto, carreteo y entrada al hangar
+  const ARRIVE = new THREE.CatmullRomCurve3([V(240, 120, 1020), V(185, 74, 460), V(150, 42, 80), V(130, 22, AIR.z1 + 125), V(101, 7, AIR.z1 + 42), V(AIR.x, 0.75, AIR.z1 - 4),
+    V(AIR.x, 0.75, AIR.z1 - 110), V(AIR.x, 0.75, airMid - 48), V(AIR.x - 4, 0.75, airMid - 59), V(TWY, 0.75, airMid - 61), V(56, 0.75, airMid - 63), V(46, 0.75, airMid - 64)], false, "centripetal");
+  // Salida: deja su puesto, carretea por el rodaje paralelo, entra a la cabecera sur y despega hacia el norte
+  const DEPART = new THREE.CatmullRomCurve3([V(53, 0.75, airMid - 9), V(60, 0.75, airMid - 9), V(TWY - 2.6, 0.75, airMid - 6), V(TWY, 0.75, airMid + 6), V(TWY, 0.75, AIR.z1 - 20), V(TWY + 4, 0.75, AIR.z1 - 10),
+    V(AIR.x, 0.75, AIR.z1 - 16), V(AIR.x, 0.75, AIR.z1 - 40), V(AIR.x, 0.75, AIR.z1 - 170), V(AIR.x + 2, 7, AIR.z0 - 30), V(AIR.x + 30, 48, AIR.z0 - 320), V(AIR.x + 90, 120, AIR.z0 - 700)], false, "centripetal");
+  const uAt = (curve, test) => { const pt = new THREE.Vector3(); for (let u = 0; u <= 1; u += 0.001) { curve.getPointAt(u, pt); if (test(pt)) return u; } return 1; };
+  const U_IN = uAt(ARRIVE, pt => pt.z < 170), U_TOUCH = uAt(ARRIVE, pt => pt.y < 1), U_LINE = uAt(DEPART, pt => pt.x > AIR.x - 0.5 && pt.z < AIR.z1 - 30);
+  // Dos llegadas alternadas (siempre hay un avión aproximando sobre el río) y una salida
   const flights = [
-    { g: makePlane(), path: ARRIVE, period: 32, offset: 6, arrive: true },
-    { g: makePlane(), path: ARRIVE, period: 32, offset: 22, arrive: true },
-    { g: makePlane(), path: DEPART, period: 38, offset: 9, arrive: false },
+    { g: makePlane(), path: ARRIVE, period: 50, offset: 4, arrive: true },
+    { g: makePlane(), path: ARRIVE, period: 50, offset: 29, arrive: true },
+    { g: makePlane(), path: DEPART, period: 50, offset: 16, arrive: false },
   ];
-  // Aviones estacionados frente a la terminal
-  if (!mobile) [[0, 0], [0, 17], [0, -18]].forEach(([dx, dz]) => { const g = makePlane(); g.position.set(AIR.x - 28, 0.75, airMid + dz); g.rotation.y = -Math.PI / 2; });
+  // Aviones estacionados en las mangas
+  if (!mobile) [-27, 9, 27].forEach(gz => { const g = makePlane(); g.position.set(52, 0.75, airMid + gz); g.rotation.y = -Math.PI / 2; });
   const fwd = new THREE.Vector3();
   function moveFlights(t) {
     for (const f of flights) {
       const k = ((t + f.offset) % f.period) / f.period;
-      // En vuelo a velocidad constante; en la pista frena (llegada) o acelera (salida)
       let u;
-      if (f.arrive) u = k < 0.8 ? lerp(U_IN, U_TOUCH, k / 0.8) : U_TOUCH + (1 - U_TOUCH) * (1 - Math.pow(1 - (k - 0.8) / 0.2, 2));
-      else u = k < 0.3 ? 0.18 * Math.pow(k / 0.3, 2) : 0.18 + 0.82 * (k - 0.3) / 0.7;
+      if (f.arrive) u = k < 0.5 ? lerp(U_IN, U_TOUCH, k / 0.5) : U_TOUCH + (1 - U_TOUCH) * (1 - Math.pow(1 - (k - 0.5) / 0.5, 2.2));
+      else u = k < 0.6 ? U_LINE * k / 0.6 : U_LINE + (1 - U_LINE) * Math.pow((k - 0.6) / 0.4, 1.8);
       f.path.getPointAt(u, f.g.position);
       f.path.getTangentAt(Math.min(0.999, u + 0.001), fwd);
+      fwd.y *= 0.6; // cabeceo suave
       f.g.lookAt(fwd.add(f.g.position));
-      f.g.visible = f.arrive ? k < 0.985 : k > 0.012;
+      f.g.visible = k > 0.004 && k < 0.996;
     }
     const blink = (Math.sin(t * 6) > 0.6 ? 1 : 0.15) * state.night;
     navRed.opacity = blink; navWhite.opacity = state.night;
@@ -557,8 +675,8 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   const PLACES = [
     { key: "obe", pos: V(HERO.x, heroH, HERO.z) },
-    { key: "acu", pos: V(-4 * PITCH, 0, -4.5 * PITCH) },
-    { key: "oll", pos: V(-8 * PITCH, 0, -8.5 * PITCH) },
+    { key: "acu", pos: SPOTS.acu.clone() },
+    { key: "oll", pos: SPOTS.oll.clone() },
   ];
   PLACES.forEach(pl => {
     if (pl.key !== "obe") {
@@ -577,13 +695,19 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const tip = new THREE.Mesh(new THREE.ConeGeometry(0.42, 0.9, 4), obeMat);
   tip.rotation.y = Math.PI / 4; tip.position.set(0, 12.6 + 0.45 + 0.18, 0); city.add(tip);
   const OBELISCO = V(0, 13.6, 0);
-  const RIO = V(150, 0, -40);
+  // Diagonal Norte y Plaza de Mayo con la Pirámide; la Casa Rosada es el edificio rosado frente al río
+  const diagStreet = new THREE.Mesh(new THREE.BoxGeometry(DIAG.len, 0.03, DIAG.w), groundMat);
+  diagStreet.position.set(DIAG.x0 + DIAG.dx * DIAG.len / 2, 0.15, DIAG.z0 + DIAG.dz * DIAG.len / 2);
+  diagStreet.rotation.y = -Math.atan2(DIAG.dz, DIAG.dx); diagStreet.receiveShadow = HQ; city.add(diagStreet);
+  const piramide = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.3, 2.2, 4), obeMat); piramide.rotation.y = Math.PI / 4; piramide.position.set(PLAZA_MAYO[0], 1.25, PLAZA_MAYO[1]); piramide.castShadow = HQ; city.add(piramide);
+  const pmPave = new THREE.Mesh(new THREE.BoxGeometry(BLOCK - 0.6, 0.04, BLOCK - 0.6), plazaMat); pmPave.position.set(PLAZA_MAYO[0], 0.16, PLAZA_MAYO[1]); pmPave.receiveShadow = HQ; city.add(pmPave);
+  const RIO = V(124, 0, 40);
 
   // Luces de calle, charcos de luz y autos
   // Faroles como geometría real: columna y luminaria, encendida solo de noche
   const lampPos = [];
   for (let z = -ext; z <= ext; z += 6.6) lampPos.push([-7.7, z], [7.7, z]);
-  for (let x = -ext; x <= 98; x += 6.6) lampPos.push([x, -1.35], [x, 1.35]);
+  for (let x = -ext; x <= 98; x += 6.6) if (Math.abs(x) > 8) lampPos.push([x, -1.35], [x, 1.35]);
   for (let z = -ext * 1.5; z <= ext * 1.5; z += 6) lampPos.push([106.6, z]);
   const poleMat = new THREE.MeshStandardMaterial({ color: C("#3A3236"), roughness: 0.6, metalness: 0.4 });
   const headMat = new THREE.MeshBasicMaterial({ color: C("#5A4E52") });
@@ -592,8 +716,6 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   lampPos.forEach(([x, z], k) => { m4.makeTranslation(x, 0.12, z); poles.setMatrixAt(k, m4); m4.makeTranslation(x, 1.24, z); heads.setMatrixAt(k, m4); });
   city.add(poles, heads);
   // De noche cada farol ilumina la vereda: la luz queda apoyada en el piso, nada flota
-  const poolTex = radial([[0, "rgba(255,255,255,1)"], [0.3, "rgba(255,255,255,.5)"], [0.7, "rgba(255,255,255,.12)"], [1, "rgba(255,255,255,0)"]]);
-  const poolMat = new THREE.MeshBasicMaterial({ map: poolTex, color: C("#FFB868"), transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
   const floorQ = new THREE.Quaternion().setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0));
   const pools = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1), poolMat, lampPos.length);
   lampPos.forEach(([x, z], k) => { m4.compose(V(x, 0.15, z), floorQ, V(3.4, 3.4, 1)); pools.setMatrixAt(k, m4); });
@@ -622,19 +744,26 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const beamsG = new THREE.PlaneGeometry(1, 1); beamsG.rotateX(-Math.PI / 2);
   const carBeams = new THREE.InstancedMesh(beamsG, beamMat, CARS); carBeams.renderOrder = 2; city.add(carBeams);
   const beamScale = V(0.9, 1, 2.6);
-  const rotJ = new THREE.Quaternion(), rotC = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
+  const RX = 9, RZ = 6.2;
   function moveCars(dt) {
     for (let i = 0; i < CARS; i++) {
       const c = cars[i];
       if (!reduce) c.s += c.dir * c.v * dt;
       const max = c.onJulio ? ext : 100;
       if (c.s > max) c.s = -ext; if (c.s < -ext) c.s = max;
-      const x = c.onJulio ? c.lane : c.s, z = c.onJulio ? c.s : c.lane;
-      m4.compose(p3.set(x, 0.12, z), c.onJulio ? rotJ : rotC, s3); carMesh.setMatrixAt(i, m4);
-      const fx = c.onJulio ? 0 : c.dir * 0.4, fz = c.onJulio ? c.dir * 0.4 : 0;
-      m4.compose(p3.set(x + fx, 0.16, z + fz), c.onJulio ? rotJ : rotC, s3); headL.setMatrixAt(i, m4);
-      m4.compose(p3.set(x - fx, 0.16, z - fz), c.onJulio ? rotJ : rotC, s3); tailL.setMatrixAt(i, m4);
-      if (state.night > 0.02) { m4.compose(p3.set(x + fx * 4.2, 0.02, z + fz * 4.2), c.onJulio ? rotJ : rotC, beamScale); carBeams.setMatrixAt(i, m4); }
+      let x = c.onJulio ? c.lane : c.s, z = c.onJulio ? c.s : c.lane, vx = c.onJulio ? 0 : c.dir, vz = c.onJulio ? c.dir : 0;
+      // Por Corrientes los autos rodean la Plaza de la República en lugar de atravesar el Obelisco
+      if (!c.onJulio && Math.abs(x) < RX) {
+        const sg = Math.sign(c.lane), k = Math.PI * x / RX;
+        z += sg * RZ * 0.5 * (1 + Math.cos(k));
+        vz = c.dir * -sg * RZ * 0.5 * Math.sin(k) * Math.PI / RX;
+      }
+      q.setFromAxisAngle(UPV, Math.atan2(vx, vz));
+      const fl = 0.4 / Math.hypot(vx, vz), fx = vx * fl, fz = vz * fl;
+      m4.compose(p3.set(x, 0.12, z), q, s3); carMesh.setMatrixAt(i, m4);
+      m4.compose(p3.set(x + fx, 0.16, z + fz), q, s3); headL.setMatrixAt(i, m4);
+      m4.compose(p3.set(x - fx, 0.16, z - fz), q, s3); tailL.setMatrixAt(i, m4);
+      if (state.night > 0.02) { m4.compose(p3.set(x + fx * 4.2, 0.02, z + fz * 4.2), q, beamScale); carBeams.setMatrixAt(i, m4); }
     }
     carMesh.instanceMatrix.needsUpdate = true;
     if (state.night > 0.02) { headL.instanceMatrix.needsUpdate = true; tailL.instanceMatrix.needsUpdate = true; carBeams.instanceMatrix.needsUpdate = true; }
@@ -961,11 +1090,11 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   // Vuelo continuo tipo drone: puntos de paso de posición y de mirada, recorridos a ritmo parejo.
   const curve = pts => new THREE.CatmullRomCurve3(pts, false, "centripetal", 0.5);
   const CITY_POS = curve([
-    V(112, 30, 175), V(40, 30, 72), V(9, 9, 42), V(6, 8.6, 14), V(7, 10, -5),
+    V(36, 44, 150), V(40, 30, 72), V(9, 9, 42), V(6, 8.6, 14), V(7, 10, -5),
     V(-6, 24, -14), V(-17, 11, -0.7), V(-29, 5.6, -0.5), V(WIN.x + 0.5, WIN.y + 0.18, WIN.z - 2.1), V(WIN.x, WIN.y, WIN.z - 0.2),
   ]);
   const CITY_LOOK = curve([
-    V(78, 2, -300), V(0, 6, 0), V(0, 8, 0), V(-1, 9.5, -4), V(-22, 6, -24),
+    V(72, 2, -330), V(0, 6, 0), V(0, 8, 0), V(-1, 9.5, -4), V(-22, 6, -24),
     V(-60, 0, -70), V(-36, 5, 1.5), V(HERO.x, 4.6, HERO.z), V(WIN.x, WIN.y, WIN.z), V(WIN.x, WIN.y, WIN.z + 2),
   ]);
   const ROOM_POS = curve([
@@ -1001,12 +1130,12 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     medianMat.color.copy(C("#CDB2A3").lerp(C("#2E2228"), m)); plazaMat.color.copy(C("#E4D2C4").lerp(C("#3A2C33"), m));
     hemi.color.copy(pick("hemiSky", m)); hemi.groundColor.copy(pick("hemiGround", m)); hemi.intensity = lerp(0.5, 0.4, m);
     sun.color.copy(pick("sun", m)); sun.intensity = lerp(2.7, 0.22, m); sun.shadow.intensity = clamp01(1 - m * 1.6);
-    city.environmentIntensity = lerp(0.45, 0.2, m);
+    city.environmentIntensity = lerp(0.45, 0.2, m); skyMat.uniforms.uN.value = m;
     uAmb.value.copy(pick("hemiSky", m)).multiplyScalar(lerp(0.55, 0.06, m));
-    headMat.color.copy(C("#5A4E52").lerp(C("#FFD08A"), m)); headLMat.opacity = m; tailLMat.opacity = m * 0.9; headL.visible = tailL.visible = carBeams.visible = pools.visible = m > 0.02; poolMat.opacity = m * 0.55; beamMat.opacity = m * 0.32; lineMat.opacity = lerp(0.55, 0.12, m);
+    headMat.color.copy(C("#5A4E52").lerp(C("#FFD08A"), m)); headLMat.opacity = m; tailLMat.opacity = m * 0.9; headL.visible = tailL.visible = carBeams.visible = pools.visible = m > 0.02; poolMat.opacity = m * 0.55; beamMat.opacity = m * 0.32; nightOnly.forEach(o => o.visible = m > 0.02); numMats.forEach(mt => mt.opacity = lerp(0.85, 0.25, m)); lineMat.opacity = lerp(0.55, 0.12, m);
     moon.material.opacity = m;
     airFieldMat.color.copy(C("#A39791").lerp(C("#2A2226"), m)); asphaltMat.color.copy(C("#3B3538").lerp(C("#141013"), m));
-    markMat.opacity = lerp(0.85, 0.25, m); termMat.color.copy(C("#E7E0DA").lerp(C("#4A3E44"), m)); termGlass.emissiveIntensity = m * 0.9;
+    markMat.opacity = lerp(0.85, 0.25, m); leadMat.opacity = lerp(0.8, 0.2, m); apronMat.color.copy(C("#8E8784").lerp(C("#1E181B"), m)); termMat.color.copy(C("#E7E0DA").lerp(C("#4A3E44"), m)); termGlass.emissiveIntensity = m * 0.9;
     beaconMat.color.copy(C("#7A7072").lerp(C("#FFE2B0"), m));
     obeMat.emissiveIntensity = m * 0.45;
     crownMat.emissiveIntensity = m * 1.4;
@@ -1116,7 +1245,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       [pos, look, rl] = fly(CITY_POS, CITY_LOOK, p / CUT);
       roll = lerp(roll, rl, 0.08);
       if (!reduce) { const idle = 1 - clamp01(p / 0.06); pos.add(V(Math.sin(state.time * 0.15) * 6 * idle, 0, Math.cos(state.time * 0.15) * 4 * idle)); }
-      moveCars(dt); moveFlights(reduce ? 12 : state.time);
+      moveCars(dt); moveFlights(reduce ? 12 : state.time); skyMat.uniforms.uTime.value = state.time;
       if (!reduce) { waveN.offset.x += dt * 0.012; waveN.offset.y += dt * 0.02; boats.forEach((b, i) => { b.position.z += dt * (0.8 + i * 0.2); if (b.position.z > 260) b.position.z = -260; }); }
     } else {
       let rl;
@@ -1147,7 +1276,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       let on = !state.auto && p >= from && p <= to && isRoom === inRoom;
       if (on) {
         v3.copy(a).project(camera);
-        if (v3.z > 1 || Math.abs(v3.x) > 0.94 || v3.y > 0.78 || v3.y < -0.9) on = false;
+        if (v3.z > 1 || Math.abs(v3.x) > 0.94 || (0.5 - v3.y * 0.5) * h < 160 || v3.y < -0.9) on = false;
         else {
           const tr = `translate3d(${((v3.x * 0.5 + 0.5) * w).toFixed(1)}px, ${((-v3.y * 0.5 + 0.5) * h).toFixed(1)}px, 0)`;
           if (l._tr !== tr) { l.style.transform = tr; l._tr = tr; }
