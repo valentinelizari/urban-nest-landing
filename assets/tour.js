@@ -1,10 +1,6 @@
 // Recorrido 3D: Buenos Aires de día o de noche, el Obelisco, nuestros departamentos
 // y el ingreso por una ventana al interior del Urban Nest Obelisco.
 import * as THREE from "three";
-import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
-import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
-import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js";
-import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
@@ -60,10 +56,9 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     return null;
   }
   const HQ = !mobile;
-  // Resolución adaptativa: arranca prudente y se ajusta según los cuadros por segundo reales
-  const DPR_MAX = Math.min(devicePixelRatio || 1, mobile ? 1.5 : 1.5);
-  let dpr = Math.min(DPR_MAX, mobile ? 1.25 : 1.25);
-  renderer.setPixelRatio(dpr);
+  // Resolución fija según un presupuesto de píxeles: nunca cambia durante el scroll
+  const PIXEL_BUDGET = mobile ? 1.1e6 : 2.1e6;
+  const dprFor = (w, h) => Math.max(0.75, Math.min(devicePixelRatio || 1, mobile ? 1.5 : 1.25, Math.sqrt(PIXEL_BUDGET / Math.max(1, w * h))));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.0;
@@ -102,15 +97,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     cityEnv = rt; city.environment = rt.texture;
   }
 
-  // Estrellas, sol y luna
-  const starGeo = new THREE.BufferGeometry(), starPos = [], sr = rng(7);
-  for (let i = 0; i < 1400; i++) {
-    const th = sr() * Math.PI * 2, ph = Math.acos(lerp(0.1, 1, sr()));
-    starPos.push(Math.cos(th) * Math.sin(ph) * 900, Math.cos(ph) * 900, Math.sin(th) * Math.sin(ph) * 900);
-  }
-  starGeo.setAttribute("position", new THREE.Float32BufferAttribute(starPos, 3));
-  const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 1.5, sizeAttenuation: false, transparent: true, opacity: 0, fog: false, depthWrite: false });
-  city.add(new THREE.Points(starGeo, starMat));
+  // Luna
   const disc = radial([[0, "rgba(255,255,255,1)"], [0.3, "rgba(255,255,255,1)"], [0.42, "rgba(255,255,255,.3)"], [1, "rgba(255,255,255,0)"]]);
   const moon = new THREE.Sprite(new THREE.SpriteMaterial({ map: disc, color: 0xF6EAF0, transparent: true, fog: false, depthWrite: false }));
   moon.position.set(-380, 260, -600); moon.scale.set(60, 60, 1); city.add(moon);
@@ -118,13 +105,14 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1.0); city.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 3);
   const SUN_DIR = V(0.62, 0.42, -0.66).normalize();
-  const SHADOW_SPAN = 90;
+  const SHADOW_SPAN = 150;
   sun.castShadow = HQ;
   if (HQ) {
     sun.shadow.mapSize.set(2048, 2048);
-    Object.assign(sun.shadow.camera, { left: -SHADOW_SPAN, right: SHADOW_SPAN, top: SHADOW_SPAN, bottom: -SHADOW_SPAN, near: 1, far: 500 });
+    Object.assign(sun.shadow.camera, { left: -SHADOW_SPAN, right: SHADOW_SPAN, top: SHADOW_SPAN, bottom: -SHADOW_SPAN, near: 1, far: 700 });
     sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.14; sun.shadow.radius = 3;
   }
+  sun.target.position.set(-15, 0, -15); sun.position.copy(sun.target.position).addScaledVector(SUN_DIR, 300);
   city.add(sun, sun.target);
 
   // Suelo, río, manzanas y calles
@@ -216,7 +204,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       sh.uniforms.uNight = uNight; sh.uniforms.uTop = { value: top };
       sh.vertexShader = sh.vertexShader
         .replace("#include <common>", `#include <common>
-          varying vec3 vWP; varying vec3 vWN; varying float vSeed; varying float vTop; uniform float uTop;
+          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; uniform float uTop;
           #ifdef USE_INSTANCING
             attribute float aSeed; attribute float aTop;
           #endif`)
@@ -231,8 +219,10 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           vWN = normalize(mat3(unM) * objectNormal);`);
       sh.fragmentShader = sh.fragmentShader
         .replace("#include <common>", `#include <common>
-          varying vec3 vWP; varying vec3 vWN; varying float vSeed; varying float vTop; uniform float uNight;
-          float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }`)
+          varying vec3 vWP; varying vec3 vWN; flat varying float vSeed; flat varying float vTop; uniform float uNight;
+          float h21(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
+          // Banda suavizada según el tamaño del píxel: sin serrucho ni titileo al moverse
+          float band(float x, float a, float b, float w){ return smoothstep(a - w, a + w, x) * (1.0 - smoothstep(b - w, b + w, x)); }`)
         .replace("#include <color_fragment>", `#include <color_fragment>
           float tower = step(1.5, vSeed);
           float sd = fract(vSeed);
@@ -242,7 +232,22 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           vec2 cell = vec2(fu.x / colW, (fu.y - 0.3) / ${FLOOR.toFixed(2)});
           vec2 f = fract(cell);
           float gw = mix(0.2, 0.32, fract(sd * 7.1));
-          float win = step(gw, f.x) * step(f.x, 1.0 - gw) * step(0.26, f.y) * step(f.y, 0.86) * step(0.0, cell.y) * wall;
+          vec2 aa = max(fwidth(cell), vec2(0.002)) * 0.75;
+          float dist = distance(vWP, cameraPosition);
+          // Lejos o en ángulo rasante la grilla se promedia: evita ruido y moiré
+          float px = max(aa.x, aa.y);
+          float lod = max(smoothstep(55.0, 150.0, dist), smoothstep(0.1, 0.24, px));
+          float detail = (1.0 - smoothstep(18.0, 45.0, dist)) * (1.0 - smoothstep(0.035, 0.07, px));
+          float inX = band(f.x, gw, 1.0 - gw, aa.x), inY = band(f.y, 0.26, 0.86, aa.y);
+          float win = inX * inY * step(0.0, cell.y) * wall;
+          // Marco, parteluz, alféizar y cortinas: solo de cerca, donde se distinguen
+          float frameIn = band(f.x, gw + 0.045, 1.0 - gw - 0.045, aa.x) * band(f.y, 0.3, 0.82, aa.y);
+          float frame = win * (1.0 - frameIn) * detail * (1.0 - tower);
+          float mull = win * (1.0 - smoothstep(0.012, 0.012 + aa.x * 2.0, abs(f.x - 0.5))) * detail * (1.0 - tower);
+          float sill = band(f.x, gw - 0.03, 1.0 - gw + 0.03, aa.x) * band(f.y, 0.215, 0.26, aa.y) * step(0.0, cell.y) * wall * detail;
+          float kc = h21(floor(cell) * 2.3 + sd * 5.0);
+          float curtainH = kc < 0.55 ? mix(0.2, 0.5, kc / 0.55) : 0.0;
+          float curtain = win * frameIn * smoothstep(0.82 - curtainH - aa.y, 0.82 - curtainH + aa.y, f.y) * detail * (1.0 - tower);
           // Torres: vidrio continuo con losas
           float slab = step(0.9, f.y);
           win = mix(win, (1.0 - slab) * wall * step(0.0, cell.y), tower);
@@ -252,32 +257,45 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
           float balc = resi * step(f.y, 0.07);
           float balcShade = resi * step(0.07, f.y) * step(f.y, 0.15);
           win *= 1.0 - cornice;
+          frame *= 1.0 - cornice; mull *= 1.0 - cornice; curtain *= 1.0 - cornice; sill *= 1.0 - cornice;
           // Planta baja: locales
           float shop = wall * (1.0 - step(0.3, vWP.y - 0.14)) * step(0.06, vWP.y - 0.14) * step(0.12, fract(fu.x / 1.6)) * step(fract(fu.x / 1.6), 0.88);
-          float rnd = h21(floor(cell) + vSeed * 31.0 + vWN.xz * 11.0);
-          float lit = step(mix(0.68, 0.58, tower), rnd);
+          float rnd = h21(floor(cell) + sd * 31.0 + floor(vWN.xz + 0.5) * 11.0);
+          float lit = mix(step(mix(0.68, 0.58, tower), rnd), 0.36, lod);
+          // A la distancia la grilla se reemplaza por su promedio: así no aparece efecto moiré
+          float winAvg = mix(0.34, 0.75, tower) * wall * step(0.0, cell.y) * (1.0 - cornice);
           vec3 glassDay = mix(vec3(0.24, 0.29, 0.36), vec3(0.42, 0.5, 0.6), h21(floor(cell) * 0.7 + sd));
           vec3 glass = mix(glassDay, vec3(0.03, 0.025, 0.04), uNight);
           // Oclusión aproximada: más oscuro cerca del suelo
           float ao = mix(0.6, 1.0, smoothstep(0.0, 2.5, vWP.y));
           diffuseColor.rgb *= ao * mix(1.0, 0.5, uNight);
-          diffuseColor.rgb = mix(diffuseColor.rgb, glass, clamp(win * 0.85 + shop * 0.8, 0.0, 1.0));
+          float glassAmt = mix(win * (1.0 - frame) * (1.0 - mull) * (1.0 - curtain), winAvg, lod);
+          vec3 wallC = diffuseColor.rgb;
+          diffuseColor.rgb = mix(diffuseColor.rgb, glass, clamp(glassAmt * 0.85 + shop * 0.8, 0.0, 1.0));
+          vec3 frameC = mix(vec3(0.86, 0.83, 0.8), vec3(0.16, 0.13, 0.14), step(0.6, fract(sd * 13.7)));
+          diffuseColor.rgb = mix(diffuseColor.rgb, frameC * mix(1.0, 0.45, uNight), clamp(frame + mull, 0.0, 1.0) * (1.0 - tower) * (1.0 - lod));
+          vec3 curtainC = mix(vec3(0.86, 0.8, 0.72), vec3(0.74, 0.62, 0.6), step(0.5, fract(kc * 9.3)));
+          diffuseColor.rgb = mix(diffuseColor.rgb, curtainC * mix(1.0, 0.35, uNight), curtain * (1.0 - tower) * (1.0 - lod));
+          diffuseColor.rgb = mix(diffuseColor.rgb, wallC * 1.12, sill * (1.0 - tower) * (1.0 - lod));
           diffuseColor.rgb *= 1.0 + 0.16 * cornice + 0.14 * balc - 0.28 * balcShade;
           float roof = 1.0 - wall;
           diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * vec3(0.8, 0.78, 0.77), roof);`)
         .replace("#include <roughnessmap_fragment>", `#include <roughnessmap_fragment>
-          roughnessFactor = mix(roughnessFactor, 0.12, clamp(win + shop, 0.0, 1.0));`)
+          float glz = clamp(mix(win * (1.0 - frame) * (1.0 - curtain), winAvg, lod) + shop, 0.0, 1.0);
+          roughnessFactor = mix(roughnessFactor, 0.12, glz);`)
         .replace("#include <metalnessmap_fragment>", `#include <metalnessmap_fragment>
-          metalnessFactor = mix(metalnessFactor, 0.55, clamp(win + shop, 0.0, 1.0) * (1.0 - uNight * 0.7));`)
+          metalnessFactor = mix(metalnessFactor, 0.55, glz * (1.0 - uNight * 0.7));`)
         .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
           float k = h21(floor(cell) * 1.7 + sd);
           vec3 warm = k < 0.75 ? vec3(1.0, 0.72, 0.42) : (k < 0.93 ? vec3(1.0, 0.88, 0.7) : vec3(0.62, 0.72, 1.0));
           float dim = mix(0.55, 1.4, h21(floor(cell) * 3.1 + 2.0));
-          totalEmissiveRadiance += win * lit * warm * dim * uNight * 0.75;
+          warm = mix(warm, vec3(1.0, 0.76, 0.5), lod); dim = mix(dim, 0.9, lod);
+          float glowA = mix(win * (1.0 - frame) * (1.0 - mull) * (1.0 - curtain * 0.45), winAvg, lod);
+          totalEmissiveRadiance += glowA * lit * warm * dim * uNight * 0.75;
           float shopLit = step(0.45, h21(vec2(floor(fu.x / 1.6), sd * 9.0)));
           totalEmissiveRadiance += shop * shopLit * vec3(1.0, 0.8, 0.55) * uNight * 1.0;`);
     };
-    mtl.customProgramCacheKey = () => "facade2";
+    mtl.customProgramCacheKey = () => "facade3";
     return mtl;
   }
   const bGeo = new THREE.BoxGeometry(1, 1, 1); bGeo.translate(0, 0.5, 0);
@@ -345,7 +363,19 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   // Ventana por la que entramos, sobre la cara que mira a Corrientes
   const WIN = V(HERO.x, 10 * FLOOR + 0.3 + 0.24, HERO.z - HERO.d / 2 - 0.012);
-  const portalMat = new THREE.MeshBasicMaterial({ color: C("#FFD9A8") });
+  // El vidrio muestra el interior real: una captura del primer cuadro de la habitación,
+  // proyectada en pantalla, para que el paso de la ciudad al interior no tenga cortes ni destellos.
+  const snapRT = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: HQ ? 4 : 0 });
+  const portalMat = new THREE.ShaderMaterial({
+    uniforms: { map: { value: snapRT.texture }, res: { value: new THREE.Vector2(1, 1) }, gain: { value: 1 } },
+    vertexShader: "void main(){ gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }",
+    fragmentShader: `uniform sampler2D map; uniform vec2 res; uniform float gain;
+      void main(){ gl_FragColor = vec4(texture2D(map, gl_FragCoord.xy / res).rgb * gain, 1.0);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    toneMapped: true, fog: false,
+  });
   const portal = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.3), portalMat);
   portal.position.copy(WIN); portal.rotation.y = Math.PI; city.add(portal);
   const frameMat = new THREE.MeshStandardMaterial({ color: C("#F5EEE8"), roughness: 0.6 });
@@ -355,18 +385,11 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   });
   const sill = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.03, 0.09), frameMat); sill.position.set(WIN.x, WIN.y - 0.19, WIN.z - 0.04); city.add(sill);
 
-  // Haz de luz sobre cada departamento
-  const beamTex = canvasTex(4, 256, (g) => {
-    const gr = g.createLinearGradient(0, 0, 0, 256);
-    gr.addColorStop(0, "rgba(255,255,255,0)"); gr.addColorStop(0.7, "rgba(255,255,255,.5)"); gr.addColorStop(1, "rgba(255,255,255,.95)");
-    g.fillStyle = gr; g.fillRect(0, 0, 4, 256);
-  }, false);
   const PLACES = [
     { key: "obe", pos: V(HERO.x, heroH, HERO.z) },
     { key: "acu", pos: V(-4 * PITCH, 0, -4.5 * PITCH) },
     { key: "oll", pos: V(-8 * PITCH, 0, -8.5 * PITCH) },
   ];
-  const beams = [];
   PLACES.forEach(pl => {
     if (pl.key !== "obe") {
       const h = 4.6;
@@ -374,10 +397,6 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       const c = new THREE.Mesh(new THREE.BoxGeometry(4.15, 0.22, 4.15), crownMat); c.position.set(pl.pos.x, h + 0.25, pl.pos.z); city.add(c);
       pl.pos.y = h + 0.3;
     }
-    const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.32, 60, 12, 1, true),
-      new THREE.MeshBasicMaterial({ map: beamTex, color: C("#E25A82"), transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide, fog: false }));
-    beam.position.set(pl.pos.x, pl.pos.y + 30, pl.pos.z);
-    city.add(beam); beams.push(beam);
     pl.label = V(pl.pos.x, pl.pos.y + 3, pl.pos.z);
   });
 
@@ -391,18 +410,20 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const RIO = V(128, 0, -18);
 
   // Luces de calle, charcos de luz y autos
-  const glow = radial([[0, "rgba(255,255,255,1)"], [0.22, "rgba(255,255,255,.75)"], [1, "rgba(255,255,255,0)"]]);
+  // Faroles como geometría real: columna y luminaria, encendida solo de noche
   const lampPos = [];
-  for (let z = -ext; z <= ext; z += 4.4) lampPos.push(-7.7, 1.0, z, 7.7, 1.0, z);
-  for (let x = -ext; x <= 100; x += 4.4) lampPos.push(x, 1.0, -1.3, x, 1.0, 1.3);
-  for (let z = -ext * 1.6; z <= ext * 1.6; z += 3.6) lampPos.push(106.6, 0.9, z);
-  const lampGeo = new THREE.BufferGeometry(); lampGeo.setAttribute("position", new THREE.Float32BufferAttribute(lampPos, 3));
-  const lampMat = new THREE.PointsMaterial({ map: glow, color: C("#FFC27A"), size: 1.1, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
-  city.add(new THREE.Points(lampGeo, lampMat));
+  for (let z = -ext; z <= ext; z += 6.6) lampPos.push([-7.7, z], [7.7, z]);
+  for (let x = -ext; x <= 98; x += 6.6) lampPos.push([x, -1.35], [x, 1.35]);
+  for (let z = -ext * 1.5; z <= ext * 1.5; z += 6) lampPos.push([106.6, z]);
+  const poleMat = new THREE.MeshStandardMaterial({ color: C("#3A3236"), roughness: 0.6, metalness: 0.4 });
+  const headMat = new THREE.MeshBasicMaterial({ color: C("#5A4E52") });
+  const poles = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.03, 0.04, 1.1, 5).translate(0, 0.55, 0), poleMat, lampPos.length);
+  const heads = new THREE.InstancedMesh(new THREE.BoxGeometry(0.16, 0.06, 0.16), headMat, lampPos.length);
+  lampPos.forEach(([x, z], k) => { m4.makeTranslation(x, 0.12, z); poles.setMatrixAt(k, m4); m4.makeTranslation(x, 1.24, z); heads.setMatrixAt(k, m4); });
+  city.add(poles, heads);
 
   const CARS = mobile ? 140 : 300;
   const cars = [], cr = rng(99);
-  const carPos = new Float32Array(CARS * 3), carCol = new Float32Array(CARS * 3);
   const carColors = ["#F2F0EE", "#1B1A1C", "#8A8C90", "#5E1028", "#2C2F36", "#C9C4BE"].map(C);
   const carGeo = new RoundedBoxGeometry(0.34, 0.2, 0.78, 2, 0.06);
   const carMesh = new THREE.InstancedMesh(carGeo, new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.35, metalness: 0.5 }), CARS);
@@ -410,17 +431,16 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     const onJulio = i < CARS * 0.62, dir = cr() < 0.5 ? 1 : -1;
     const lane = onJulio ? (dir > 0 ? lerp(-7.1, -5.4, cr()) : lerp(5.4, 7.1, cr())) : (dir > 0 ? -0.55 : 0.55);
     cars.push({ onJulio, dir, lane, s: lerp(-ext, onJulio ? ext : 100, cr()), v: lerp(3.5, 8, cr()) });
-    const col = dir > 0 ? C("#FFF1D6") : C("#FF2E4E");
-    carCol.set([col.r, col.g, col.b], i * 3);
     const taxi = cr() < 0.28;
     carMesh.setColorAt(i, taxi ? C("#141214") : carColors[Math.floor(cr() * carColors.length)]);
   }
   city.add(carMesh);
-  const lightGeo = new THREE.BufferGeometry();
-  lightGeo.setAttribute("position", new THREE.BufferAttribute(carPos, 3));
-  lightGeo.setAttribute("color", new THREE.BufferAttribute(carCol, 3));
-  const carLightMat = new THREE.PointsMaterial({ map: glow, size: 0.7, vertexColors: true, transparent: true, opacity: 0, blending: THREE.AdditiveBlending, depthWrite: false });
-  city.add(new THREE.Points(lightGeo, carLightMat));
+  // Luces de los autos pegadas a cada auto (no flotan)
+  const headLMat = new THREE.MeshBasicMaterial({ color: C("#FFF1D6"), transparent: true, opacity: 0, depthWrite: false });
+  const tailLMat = new THREE.MeshBasicMaterial({ color: C("#FF3355"), transparent: true, opacity: 0, depthWrite: false });
+  const lightBox = new THREE.BoxGeometry(0.3, 0.06, 0.03);
+  const headL = new THREE.InstancedMesh(lightBox, headLMat, CARS), tailL = new THREE.InstancedMesh(lightBox, tailLMat, CARS);
+  city.add(headL, tailL);
   const rotJ = new THREE.Quaternion(), rotC = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.PI / 2, 0));
   function moveCars(dt) {
     for (let i = 0; i < CARS; i++) {
@@ -430,11 +450,12 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       if (c.s > max) c.s = -ext; if (c.s < -ext) c.s = max;
       const x = c.onJulio ? c.lane : c.s, z = c.onJulio ? c.s : c.lane;
       m4.compose(p3.set(x, 0.12, z), c.onJulio ? rotJ : rotC, s3); carMesh.setMatrixAt(i, m4);
-      const fx = c.onJulio ? 0 : c.dir * 0.42, fz = c.onJulio ? c.dir * 0.42 : 0;
-      carPos.set([x + fx, 0.2, z + fz], i * 3);
+      const fx = c.onJulio ? 0 : c.dir * 0.4, fz = c.onJulio ? c.dir * 0.4 : 0;
+      m4.compose(p3.set(x + fx, 0.16, z + fz), c.onJulio ? rotJ : rotC, s3); headL.setMatrixAt(i, m4);
+      m4.compose(p3.set(x - fx, 0.16, z - fz), c.onJulio ? rotJ : rotC, s3); tailL.setMatrixAt(i, m4);
     }
     carMesh.instanceMatrix.needsUpdate = true;
-    lightGeo.attributes.position.needsUpdate = true;
+    if (state.night > 0.02) { headL.instanceMatrix.needsUpdate = true; tailL.instanceMatrix.needsUpdate = true; }
   }
 
   /* ───────────── INTERIOR ───────────── */
@@ -558,12 +579,23 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const cyl = (rt, rb, h, m, x, y, z, seg = 32) => add(new THREE.CylinderGeometry(rt, rb, h, seg), m, x, y, z);
 
   const RW = 6, RD = 6.5, RH = 2.8, Z0 = -4, Z1 = 2.5;
-  const wallMat = new THREE.MeshStandardMaterial({ color: C("#F1E9E0"), roughness: 0.95, normalMap: plasterN, normalScale: new THREE.Vector2(0.35, 0.35) });
+  // Oclusión en rincones: paredes, piso y techo se oscurecen suavemente donde se encuentran
+  const cornerAO = (bottom, top, side) => tex(heightCanvas(256, 256, (g, w, h) => {
+    g.fillStyle = "#fff"; g.fillRect(0, 0, w, h);
+    g.globalCompositeOperation = "multiply";
+    const lin = (x0, y0, x1, y1, a, f) => { const gr = g.createLinearGradient(x0, y0, x1, y1); gr.addColorStop(0, `rgb(${a},${a},${a})`); gr.addColorStop(f, "#fff"); gr.addColorStop(1, "#fff"); g.fillStyle = gr; g.fillRect(0, 0, w, h); };
+    lin(0, h, 0, 0, bottom[0], bottom[1]); lin(0, 0, 0, h, top[0], top[1]);
+    lin(0, 0, w, 0, side[0], side[1]); lin(w, 0, 0, 0, side[0], side[1]);
+  }), 1, false);
+  const wallAO = cornerAO([120, 0.16], [170, 0.09], [165, 0.08]);
+  const floorAO = cornerAO([150, 0.07], [150, 0.07], [150, 0.06]);
+  const wallMat = new THREE.MeshStandardMaterial({ color: C("#F1E9E0"), roughness: 0.95, normalMap: plasterN, normalScale: new THREE.Vector2(0.35, 0.35), aoMap: wallAO, aoMapIntensity: 1 });
+  const wallMatPlain = new THREE.MeshStandardMaterial({ color: C("#F1E9E0"), roughness: 0.95, normalMap: plasterN, normalScale: new THREE.Vector2(0.35, 0.35) });
   const oak = new THREE.MeshStandardMaterial({ map: oakTex, normalMap: oakN, normalScale: new THREE.Vector2(0.4, 0.4), roughness: 0.55 });
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), new THREE.MeshStandardMaterial({ map: oakTex, normalMap: oakN, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 0.42, envMapIntensity: 1.1 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), new THREE.MeshStandardMaterial({ map: oakTex, normalMap: oakN, normalScale: new THREE.Vector2(0.6, 0.6), roughness: 0.42, envMapIntensity: 1.1, aoMap: floorAO, aoMapIntensity: 1 }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, (Z0 + Z1) / 2); floor.receiveShadow = true; room.add(floor);
-  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), std("#FAF6F1", { roughness: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, RH, (Z0 + Z1) / 2); room.add(ceil);
-  const wall = (w, h, x, y, z, ry) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), wallMat); p.position.set(x, y, z); p.rotation.y = ry; p.receiveShadow = true; room.add(p); return p; };
+  const ceil = new THREE.Mesh(new THREE.PlaneGeometry(RW, RD), std("#FAF6F1", { roughness: 1, aoMap: floorAO, aoMapIntensity: 1 })); ceil.rotation.x = Math.PI / 2; ceil.position.set(0, RH, (Z0 + Z1) / 2); room.add(ceil);
+  const wall = (w, h, x, y, z, ry, mat = wallMat) => { const p = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); p.position.set(x, y, z); p.rotation.y = ry; p.receiveShadow = true; room.add(p); return p; };
   wall(RW, RH, 0, RH / 2, Z0, 0);
   wall(RD, RH, RW / 2, RH / 2, (Z0 + Z1) / 2, -Math.PI / 2);
   wall(RW, RH, 0, RH / 2, Z1, Math.PI);
@@ -575,7 +607,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   // Pared izquierda con ventanal
   [[RD, 0.55, 0.275, (Z0 + Z1) / 2], [RD, 0.35, RH - 0.175, (Z0 + Z1) / 2], [1.2, RH, RH / 2, Z1 - 0.6], [1.0, RH, RH / 2, Z0 + 0.5]]
-    .forEach(([w, h, y, z]) => wall(w, h, -RW / 2, y, z, Math.PI / 2));
+    .forEach(([w, h, y, z]) => wall(w, h, -RW / 2, y, z, Math.PI / 2, wallMatPlain));
   const skylineCanvas = document.createElement("canvas"); skylineCanvas.width = 1024; skylineCanvas.height = 512;
   const skylineTex = new THREE.CanvasTexture(skylineCanvas); skylineTex.colorSpace = THREE.SRGBColorSpace;
   const skyline = new THREE.Mesh(new THREE.PlaneGeometry(10, 5), new THREE.MeshBasicMaterial({ map: skylineTex, toneMapped: false }));
@@ -609,7 +641,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const cp = curtainGeo.attributes.position;
   for (let i = 0; i < cp.count; i++) cp.setZ(i, Math.sin(cp.getX(i) * 24) * 0.04 + Math.sin(cp.getX(i) * 7) * 0.02);
   curtainGeo.computeVertexNormals();
-  const curtainMat = new THREE.MeshPhysicalMaterial({ color: C("#FFFBF6"), roughness: 1, transmission: 0.35, transparent: true, opacity: 0.6, side: THREE.DoubleSide, sheen: 0.6, sheenColor: C("#ffffff") });
+  const curtainMat = new THREE.MeshPhysicalMaterial({ color: C("#FFFBF6"), roughness: 1, transparent: true, opacity: 0.6, depthWrite: false, side: THREE.DoubleSide, sheen: 0.6, sheenColor: C("#ffffff") });
   [Z0 + 0.95, Z1 - 1.05].forEach(z => { const c = new THREE.Mesh(curtainGeo, curtainMat); c.rotation.y = Math.PI / 2; c.position.set(-RW / 2 + 0.14, RH / 2 - 0.04, z); room.add(c); });
   box(0.04, 0.04, RD - 1.2, metal, -RW / 2 + 0.14, RH - 0.08, (Z0 + Z1) / 2 - 0.05);
 
@@ -689,7 +721,8 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   const mirror = new THREE.Mesh(new THREE.CircleGeometry(0.31, 48), new THREE.MeshStandardMaterial({ color: 0xffffff, metalness: 1, roughness: 0.04, envMapIntensity: 1.4 }));
   mirror.position.set(RW / 2 - 0.035, 1.55, 0.95); mirror.rotation.y = -Math.PI / 2; room.add(mirror);
   // Lámparas colgantes de ratán
-  const shadeM = new THREE.MeshStandardMaterial({ color: C("#C08A55"), roughness: 0.7, alphaMap: rattan, alphaTest: 0.5, side: THREE.DoubleSide, emissive: C("#FFB466"), emissiveIntensity: 0 });
+  // En el celular (sin antialias) el calado del ratán se vería como ruido: pantalla lisa
+  const shadeM = new THREE.MeshStandardMaterial({ color: C(mobile ? "#B07C4B" : "#C08A55"), roughness: 0.7, alphaMap: mobile ? null : rattan, alphaTest: mobile ? 0 : 0.5, side: THREE.DoubleSide, emissive: C("#FFB466"), emissiveIntensity: 0 });
   const pend = [];
   [[1.2, -2.1], [1.8, -2.25]].forEach(([x, z], i) => {
     add(new THREE.CylinderGeometry(0.004, 0.004, 0.75, 4), std("#222"), x, RH - 0.37, z);
@@ -699,21 +732,12 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     room.add(pl); pend.push(pl);
   });
 
-  /* ───────────── POSTPROCESO ───────────── */
-  let composer = null, renderPass = null, bloom = null;
-  if (HQ) {
-    composer = new EffectComposer(renderer);
-    renderPass = new RenderPass(city, camera);
-    bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.55, 0.9);
-    composer.addPass(renderPass); composer.addPass(bloom); composer.addPass(new OutputPass());
-  }
-
   /* ───────────── CÁMARA ───────────── */
   // Vuelo continuo tipo drone: puntos de paso de posición y de mirada, recorridos a ritmo parejo.
   const curve = pts => new THREE.CatmullRomCurve3(pts, false, "centripetal", 0.5);
   const CITY_POS = curve([
     V(70, 64, 120), V(40, 30, 72), V(9, 9, 42), V(6, 8.6, 14), V(7, 10, -5),
-    V(-6, 24, -14), V(-17, 11, -0.7), V(-29, 5.6, -0.5), V(WIN.x + 0.5, WIN.y + 0.18, WIN.z - 2.1), V(WIN.x, WIN.y, WIN.z - 0.25),
+    V(-6, 24, -14), V(-17, 11, -0.7), V(-29, 5.6, -0.5), V(WIN.x + 0.5, WIN.y + 0.18, WIN.z - 2.1), V(WIN.x, WIN.y, WIN.z - 0.2),
   ]);
   const CITY_LOOK = curve([
     V(40, 0, -30), V(0, 6, 0), V(0, 8, 0), V(-1, 9.5, -4), V(-22, 6, -24),
@@ -751,18 +775,15 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     groundMat.color.copy(pick("ground", m)); blockMat.color.copy(pick("block", m)); waterMat.color.copy(pick("water", m)); shoreMat.color.copy(C("#D8CBBE").lerp(C("#3A2E33"), m)); boatMat.color.copy(C("#F4EFEA").lerp(C("#6E6268"), m));
     medianMat.color.copy(C("#CDB2A3").lerp(C("#2E2228"), m)); plazaMat.color.copy(C("#E4D2C4").lerp(C("#3A2C33"), m));
     hemi.color.copy(pick("hemiSky", m)); hemi.groundColor.copy(pick("hemiGround", m)); hemi.intensity = lerp(0.5, 0.4, m);
-    sun.color.copy(pick("sun", m)); sun.intensity = lerp(2.7, 0.22, m); sun.castShadow = HQ && m < 0.5; renderer.shadowMap.needsUpdate = true;
+    sun.color.copy(pick("sun", m)); sun.intensity = lerp(2.7, 0.22, m); sun.shadow.intensity = clamp01(1 - m * 1.6);
     city.environmentIntensity = lerp(0.45, 0.2, m);
-    starMat.opacity = m; lampMat.opacity = m * 0.7; carLightMat.opacity = m; lineMat.opacity = lerp(0.55, 0.12, m);
+    headMat.color.copy(C("#5A4E52").lerp(C("#FFD08A"), m)); headLMat.opacity = m; tailLMat.opacity = m * 0.9; headL.visible = tailL.visible = m > 0.02; lineMat.opacity = lerp(0.55, 0.12, m);
     moon.material.opacity = m;
     obeMat.emissiveIntensity = m * 0.45;
     crownMat.emissiveIntensity = m * 1.4;
     heroMat.color.copy(C("#C98B9C").lerp(C("#8A4256"), m)); smallMat.color.copy(heroMat.color);
     canopyMat.color.copy(C("#FFFFFF").lerp(C("#6E5A7E"), m));
-    beams.forEach(b => b.material.opacity = lerp(0.18, 0.45, m));
-    portalMat.color.copy(C("#F5D6B8").lerp(C("#FFC277"), m));
     renderer.toneMappingExposure = lerp(0.82, 1.05, m);
-    if (bloom) { bloom.strength = lerp(0.04, 0.5, m); bloom.threshold = lerp(1.6, 0.85, m); bloom.radius = lerp(0.3, 0.42, m); }
     // Interior: de día luz del ventanal; de noche, solo las lámparas
     rHemi.color.copy(pick("roomHemi", m)); rHemi.intensity = lerp(0.38, 0.12, m);
     rSun.intensity = lerp(2.3, 0.0, m);
@@ -775,32 +796,59 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   }
   applyTheme(state.night, true);
 
+  // Exposición de cada escena
+  const expo = (inRoom, m) => inRoom ? lerp(0.8, 1.0, m) : lerp(0.82, 1.05, m);
+  // Primer cuadro de la habitación: lo que se ve a través de la ventana
+  const snapCam = new THREE.PerspectiveCamera();
+  function snapshot() {
+    const size = renderer.getDrawingBufferSize(new THREE.Vector2());
+    if (snapRT.width !== size.x || snapRT.height !== size.y) snapRT.setSize(size.x, size.y);
+    portalMat.uniforms.res.value.copy(size);
+    portalMat.uniforms.gain.value = expo(true, state.night) / expo(false, state.night);
+    snapCam.copy(camera); snapCam.near = 0.05; snapCam.updateProjectionMatrix();
+    const [pos, look] = fly(ROOM_POS, ROOM_LOOK, 0);
+    snapCam.position.copy(pos); snapCam.lookAt(look);
+    renderer.setRenderTarget(snapRT); renderer.render(room, snapCam); renderer.setRenderTarget(null);
+  }
+  // Todo se compila y se sube a la GPU antes de empezar: nada se carga por primera vez en mitad del scroll
   function warmUp() {
+    renderer.compile(city, camera); renderer.compile(room, camera);
+    const seen = new Set();
+    [city, room].forEach(sc => sc.traverse(o => {
+      const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : [];
+      ms.forEach(mt => ["map", "normalMap", "alphaMap", "aoMap", "roughnessMap"].forEach(k => { const t = mt[k]; if (t && !seen.has(t) && !t.isRenderTargetTexture) { seen.add(t); renderer.initTexture(t); } }));
+    }));
     const rt = new THREE.WebGLRenderTarget(64, 64);
     const cam = camera.clone(); cam.position.set(0, 1.5, 2); cam.lookAt(0, 1, -2);
     renderer.setRenderTarget(rt);
     renderer.shadowMap.needsUpdate = true; renderer.render(room, cam);
     renderer.shadowMap.needsUpdate = true; renderer.render(city, camera);
     renderer.setRenderTarget(null); rt.dispose();
-    renderer.shadowMap.needsUpdate = true;
+    snapshot();
   }
+  let snapTimer = 0;
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    if (!w || !h) return;
+    if (!w || !h || (w === lastW && h === lastH)) return;
+    // En el celular la barra del navegador cambia el alto: si solo cambia un poco, no se toca el lienzo
+    if (mobile && w === lastW && Math.abs(h - lastH) < 140) return;
+    lastW = w; lastH = h;
+    renderer.setPixelRatio(dprFor(w, h));
     renderer.setSize(w, h, false);
-    if (composer) { composer.setPixelRatio(renderer.getPixelRatio()); composer.setSize(w, h); }
     camera.aspect = w / h;
     camera.fov = w / h < 0.8 ? 64 : 50;
     camera.updateProjectionMatrix();
+    dirty = true;
+    clearTimeout(snapTimer); snapTimer = setTimeout(() => { if (running) { snapshot(); dirty = true; } }, 200);
   }
+  let lastW = 0, lastH = 0, dirty = true, running = false;
   resize();
   addEventListener("resize", resize);
   if (!mobile) addEventListener("pointermove", e => { state.mx = e.clientX / innerWidth - 0.5; state.my = e.clientY / innerHeight - 0.5; });
 
-  const v3 = new THREE.Vector3(), focus = new THREE.Vector3();
-  let labelEls = [], lastPaint = state.night, running = false, visible = true, last = performance.now();
-  let lastInRoom = null, fpsAcc = 0, fpsN = 0;
-  const AUTO_LEN = 30; // segundos de la vuelta automática en mobile
+  const v3 = new THREE.Vector3(), lastCam = new THREE.Matrix4();
+  let labelEls = [], lastPaint = state.night, visible = true, last = performance.now(), autoDone = false;
+  const AUTO_LEN = 26; // segundos del recorrido automático en mobile: se reproduce una vez y queda en la habitación
 
   function frame(now) {
     if (!running) return;
@@ -809,8 +857,10 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     state.time += dt;
     if (state.auto) {
-      if (!reduce) state.autoT = (state.autoT + dt / AUTO_LEN) % 1;
+      if (!reduce) state.autoT = Math.min(1, state.autoT + dt / AUTO_LEN);
+      else state.autoT = 1;
       state.p = state.pShown = state.autoT;
+      if (state.autoT >= 1 && !autoDone) { autoDone = true; onEnd && onEnd(); }
     } else {
       state.pShown = reduce ? state.p : lerp(state.pShown, state.p, 1 - Math.pow(0.0015, dt));
     }
@@ -818,8 +868,10 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       state.night = lerp(state.night, state.nightTarget, 1 - Math.pow(0.02, dt));
       const done = Math.abs(state.night - state.nightTarget) < 0.002;
       if (done) state.night = state.nightTarget;
-      applyTheme(state.night, done || Math.abs(state.night - lastPaint) > 0.15);
-      if (done || Math.abs(state.night - lastPaint) > 0.15) lastPaint = state.night;
+      const full = done || Math.abs(state.night - lastPaint) > 0.15;
+      applyTheme(state.night, full);
+      if (full) { lastPaint = state.night; snapshot(); }
+      dirty = true;
     }
     const p = state.pShown, inRoom = p >= CUT;
     let pos, look;
@@ -830,13 +882,6 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       if (!reduce) { const idle = 1 - clamp01(p / 0.06); pos.add(V(Math.sin(state.time * 0.15) * 6 * idle, 0, Math.cos(state.time * 0.15) * 4 * idle)); }
       moveCars(dt);
       if (!reduce) { waveN.offset.x += dt * 0.012; waveN.offset.y += dt * 0.02; boats.forEach((b, i) => { b.position.z += dt * (0.8 + i * 0.2); if (b.position.z > 260) b.position.z = -260; }); }
-      
-      if (HQ) {
-        focus.copy(look).setY(0).lerp(V(pos.x, 0, pos.z), 0.35);
-        const texel = (2 * SHADOW_SPAN) / 2048;
-        focus.x = Math.round(focus.x / texel) * texel; focus.z = Math.round(focus.z / texel) * texel;
-        if (!focus.equals(sun.target.position)) { sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(SUN_DIR, 220); renderer.shadowMap.needsUpdate = true; }
-      }
     } else {
       let rl;
       [pos, look, rl] = fly(ROOM_POS, ROOM_LOOK, (p - CUT) / (1 - CUT));
@@ -850,16 +895,13 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     const near = inRoom || p / CUT > 0.9 ? 0.05 : 0.5;
     if (camera.near !== near) { camera.near = near; camera.updateProjectionMatrix(); }
     const scene = inRoom ? room : city;
-    renderer.toneMappingExposure = inRoom ? lerp(0.8, 1.0, state.night) : lerp(0.82, 1.05, state.night);
-    if (inRoom !== lastInRoom) { renderer.shadowMap.needsUpdate = true; lastInRoom = inRoom; }
-    if (composer && state.night > 0.05) { renderPass.scene = scene; composer.render(dt); } else renderer.render(scene, camera);
-    // Medición de fluidez y ajuste de resolución
-    fpsAcc += dt; fpsN++;
-    if (fpsAcc > 1.2) {
-      const ft = fpsAcc / fpsN; fpsAcc = 0; fpsN = 0;
-      const next = ft > 0.022 ? Math.max(0.75, dpr - 0.15) : ft < 0.0135 ? Math.min(DPR_MAX, dpr + 0.1) : dpr;
-      if (Math.abs(next - dpr) > 0.01) { dpr = next; renderer.setPixelRatio(dpr); resize(); }
-    }
+    renderer.toneMappingExposure = expo(inRoom, state.night);
+    // Las sombras son estáticas (se calculan una vez por escena). La habitación no tiene nada en movimiento:
+    // si la cámara no se movió, el cuadro anterior sigue siendo válido y no se vuelve a dibujar.
+    camera.updateMatrixWorld();
+    const still = inRoom && !dirty && lastCam.equals(camera.matrixWorld);
+    if (!still) renderer.render(scene, camera);
+    lastCam.copy(camera.matrixWorld); dirty = false;
 
     // Etiquetas HTML ancladas a puntos 3D
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -869,7 +911,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
       let on = !state.auto && p >= from && p <= to && isRoom === inRoom;
       if (on) {
         v3.copy(a).project(camera);
-        if (v3.z > 1 || Math.abs(v3.x) > 1.05 || Math.abs(v3.y) > 1.05) on = false;
+        if (v3.z > 1 || Math.abs(v3.x) > 0.94 || v3.y > 0.78 || v3.y < -0.9) on = false;
         else {
           const tr = `translate3d(${((v3.x * 0.5 + 0.5) * w).toFixed(1)}px, ${((-v3.y * 0.5 + 0.5) * h).toFixed(1)}px, 0)`;
           if (l._tr !== tr) { l.style.transform = tr; l._tr = tr; }
@@ -880,11 +922,18 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     }
   }
 
+  let onEnd = null;
+  canvas.addEventListener("webglcontextlost", e => { e.preventDefault(); running = false; onLost && onLost(); });
+  let onLost = null;
   return {
     CUT,
+    onLost(fn) { onLost = fn; },
     setProgress(p) { state.p = clamp01(p); },
     getProgress() { return state.pShown; },
     setAuto(on) { state.auto = on; },
+    replay() { state.autoT = 0; autoDone = false; },
+    onEnd(fn) { onEnd = fn; },
+    stop() { running = false; },
     setNight(on, instant) { state.nightTarget = on ? 1 : 0; if (instant) { state.night = state.nightTarget; applyTheme(state.night, true); lastPaint = state.night; } },
     setLabels(els) { labelEls = els; },
     setVisible(v) { visible = v; },

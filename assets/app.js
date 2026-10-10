@@ -43,7 +43,7 @@ sheet.addEventListener("click", e => { if (e.target.closest("a")) setSheet(false
 addEventListener("keydown", e => { if (e.key === "Escape" && !sheet.hidden) setSheet(false); });
 
 /* ───────── Recorrido 3D ───────── */
-const tourEl = $("#tour"), canvas = $("#tourCanvas"), flash = $("#tourFlash"), bar = $("#tourBar");
+const tourEl = $("#tour"), canvas = $("#tourCanvas"), bar = $("#tourBar");
 const panels = $$(".tp", tourEl), chapters = $$(".chapters li", tourEl);
 const inRange = (el, p) => p >= +el.dataset.from && p < +el.dataset.to;
 
@@ -57,6 +57,11 @@ const inRange = (el, p) => p >= +el.dataset.from && p < +el.dataset.to;
     tour.setLabels($$(".pin", tourEl));
     tour.setAuto(isMobile());
     tour.setProgress(tourProgress());
+    // Si el navegador pierde el contexto gráfico, queda la portada estática en lugar de una pantalla en blanco
+    tour.onLost(() => root.classList.add("no-webgl"));
+    const replay = $("#tourReplay");
+    tour.onEnd(() => { replay.hidden = false; });
+    replay.addEventListener("click", () => { replay.hidden = true; capText = ""; tour.replay(); });
     tour.start();
     mq.addEventListener("change", () => { tour.setAuto(isMobile()); onScroll(); });
     if (isMobile()) requestAnimationFrame(autoLoop);
@@ -77,8 +82,6 @@ let capText = "";
 function paintTour(p) {
   chapters.forEach(el => el.classList.toggle("on", inRange(el, p)));
   bar.style.transform = `scaleX(${p})`;
-  // Destello cálido al atravesar la ventana
-  flash.style.opacity = clamp01(1 - Math.abs(p - 0.6) / 0.035);
   const on = chapters.find(el => inRange(el, p));
   if (on && on.dataset.cap !== capText) { capText = on.dataset.cap; cap.classList.remove("in"); void cap.offsetWidth; cap.textContent = capText; cap.classList.add("in"); }
 }
