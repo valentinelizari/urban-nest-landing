@@ -59,11 +59,9 @@ const inRange = (el, p) => p >= +el.dataset.from && p < +el.dataset.to;
     tour.setProgress(tourProgress());
     // Si el navegador pierde el contexto gráfico, queda la portada estática en lugar de una pantalla en blanco
     tour.onLost(() => root.classList.add("no-webgl"));
-    const replay = $("#tourReplay");
-    tour.onEnd(() => { replay.hidden = false; });
-    replay.addEventListener("click", () => { replay.hidden = true; capText = ""; tour.replay(); });
+
     tour.start();
-    mq.addEventListener("change", () => { tour.setAuto(isMobile()); onScroll(); });
+    mq.addEventListener("change", () => { tour.setAuto(isMobile()); if (isMobile()) requestAnimationFrame(autoLoop); onScroll(); });
     if (isMobile()) requestAnimationFrame(autoLoop);
     new IntersectionObserver(([e]) => tour.setVisible(e.isIntersecting)).observe(tourEl);
   } catch (e) {
@@ -94,8 +92,12 @@ function updateTour() {
 }
 // En mobile la escena se reproduce sola, como un video de portada.
 function autoLoop() {
-  if (!isMobile() || !tour) return;
-  paintTour(tour.getProgress());
+  if (!isMobile() || !tour) { canvas.style.opacity = ""; return; }
+  const p = tour.getProgress();
+  paintTour(p);
+  // Fundido suave al cerrar cada vuelta, para que el reinicio no sea un corte
+  const f = Math.min(1, p / 0.02, (1 - p) / 0.02).toFixed(2);
+  if (canvas.style.opacity !== f) canvas.style.opacity = f;
   requestAnimationFrame(autoLoop);
 }
 
@@ -364,6 +366,41 @@ measureHs(); addEventListener("resize", measureHs); addEventListener("load", mea
 addEventListener("scroll", onScroll, { passive: true });
 addEventListener("resize", onScroll);
 onScroll();
+
+/* ───────── Scroll suave en la compu ─────────
+   La rueda del mouse avanza por pasos; acá cada paso se convierte en un desplazamiento continuo
+   con inercia. El teclado, la barra de scroll y los enlaces internos siguen funcionando igual. */
+if (!mobile && !reduce && matchMedia("(pointer: fine)").matches) {
+  let target = scrollY, cur = scrollY, raf = 0, last = 0;
+  const maxY = () => document.documentElement.scrollHeight - innerHeight;
+  const scrollsInside = (el, dy) => {
+    for (; el && el !== document.body && el.nodeType === 1; el = el.parentElement) {
+      if (el.scrollHeight > el.clientHeight + 1 && /(auto|scroll)/.test(getComputedStyle(el).overflowY)) {
+        if (dy > 0 ? el.scrollTop + el.clientHeight < el.scrollHeight - 1 : el.scrollTop > 0) return true;
+      }
+    }
+    return false;
+  };
+  const glide = t => {
+    const dt = Math.min(0.05, Math.max(0.001, (t - last) / 1000)); last = t;
+    cur += (target - cur) * (1 - Math.pow(0.0025, dt));
+    if (Math.abs(target - cur) < 0.6) cur = target;
+    scrollTo({ top: cur, behavior: "instant" });
+    raf = cur !== target ? requestAnimationFrame(glide) : 0;
+  };
+  addEventListener("wheel", e => {
+    if (e.ctrlKey || Math.abs(e.deltaX) > Math.abs(e.deltaY) || !sheet.hidden || scrollsInside(e.target, e.deltaY)) return;
+    e.preventDefault();
+    const d = e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? innerHeight : 1);
+    if (!raf) { cur = target = scrollY; last = performance.now(); }
+    target = Math.max(0, Math.min(maxY(), target + d));
+    if (!raf) raf = requestAnimationFrame(glide);
+  }, { passive: false });
+  // Si el desplazamiento viene de otro lado (teclado, barra, enlaces), se toma como nuevo punto de partida
+  addEventListener("scroll", () => { if (!raf) cur = target = scrollY; }, { passive: true });
+  addEventListener("keydown", () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } });
+  addEventListener("pointerdown", () => { if (raf) { cancelAnimationFrame(raf); raf = 0; } });
+}
 
 /* ───────── Formulario → Supabase (función pública registrar_lead_publico) ───────── */
 const SB_URL = "https://ezocccljyweieyafndhb.supabase.co";
