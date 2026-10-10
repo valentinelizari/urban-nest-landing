@@ -55,8 +55,6 @@ HEAD = '''<!doctype html>
       <a href="/terminos"{terms_on}>Términos</a>
     </nav>
     <h1>{title}</h1>
-    <p class="lg-lead">{lead}</p>
-    <p class="lg-upd">Última actualización: 10 de octubre de 2026</p>
   </div>
 </section>
 
@@ -66,27 +64,25 @@ HEAD = '''<!doctype html>
     <ol>{toc}</ol>
   </aside>
   <div class="lg-body">
-    <div class="lg-sum">
-      <p class="lg-sum-t">En pocas palabras</p>
-      <ul>{summary}</ul>
-    </div>
     <div class="lg-intro">{intro}</div>
     {sections}
-    <div class="lg-contact">
-      <div>
-        <p class="lg-contact-t">{contact_t}</p>
-        <p>Escribinos y te respondemos personalmente.</p>
-      </div>
-      <a class="btn btn-light" href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a>
-    </div>
   </div>
 </main>
 
 <footer class="ft">
-  <div class="wrap ft-in">
-    <a class="brand" href="/"><img src="/assets/img/urban-nest-logo.webp" alt="" width="31" height="26"><span>Urban Nest</span></a>
-    <p>Gestión profesional de departamentos en Airbnb en Buenos Aires. © 2026</p>
-    <nav aria-label="Pie de página"><a href="/">Inicio</a><a href="/#contacto">Contacto</a><a href="/privacidad">Política de privacidad</a><a href="/terminos">Términos y condiciones</a></nav>
+  <div class="wrap">
+    <div class="ft-top">
+      <div class="ft-brand">
+        <a class="brand" href="/"><img src="/assets/img/urban-nest-logo.webp" alt="" width="31" height="26"><span>Urban Nest</span></a>
+        <p>Gestión profesional de departamentos en Airbnb en Buenos Aires.</p>
+      </div>
+      <nav class="ft-cols" aria-label="Pie de página">
+        <div><p class="ft-h">Sitio</p><a href="/#reserva">Servicios</a><a href="/#resultados">Resultados</a><a href="/#simulador">Simulador</a><a href="/Urban_Nest_Presentacion_Propietarios.pdf" download data-pdf="footer">Presentación en PDF</a></div>
+        <div><p class="ft-h">Contacto</p><a href="mailto:un.urbannest@gmail.com">un.urbannest@gmail.com</a><a href="/#contacto">Pedí tu cotización</a></div>
+        <div><p class="ft-h">Legal</p><a href="/privacidad">Política de privacidad</a><a href="/terminos">Términos y condiciones</a></div>
+      </nav>
+    </div>
+    <div class="ft-bot"><span>© 2026 Urban Nest. Todos los derechos reservados.</span><span>Buenos Aires, Argentina</span></div>
   </div>
 </footer>
 <script>

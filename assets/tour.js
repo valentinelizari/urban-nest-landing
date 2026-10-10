@@ -225,16 +225,18 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
   // Demarcación de carriles en la 9 de Julio
   const lineMat = new THREE.MeshBasicMaterial({ color: C("#E9E1D8"), transparent: true, opacity: 0.55 });
   const dashes = [];
-  for (let z = -ext; z <= ext; z += 2.4) for (const x of [-6.6, -5.9, 5.9, 6.6, -2.2, 2.2]) if (Math.abs(x) > 3 || Math.abs(z) > 6) dashes.push([x, z]);
+  for (let z = -ext; z <= ext; z += 2.4) for (const x of [-6.6, -5.9, 5.9, 6.6, -2.2, 2.2]) if (Math.hypot(x, z) > 8) dashes.push([x, z]);
   const dashInst = new THREE.InstancedMesh(new THREE.PlaneGeometry(0.06, 1.1), lineMat, dashes.length);
   dashes.forEach(([x, z], k) => { q.setFromEuler(new THREE.Euler(-Math.PI / 2, 0, 0)); m4.compose(V(x, 0.02, z), q, s3); dashInst.setMatrixAt(k, m4); });
   city.add(dashInst);
 
   // Canteros de la 9 de Julio y Plaza de la República
   const medianMat = new THREE.MeshStandardMaterial({ color: C("#CDB2A3"), roughness: 1 });
-  for (const off of [-4.2, 4.2]) {
-    const s = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.16, 2 * ext + PITCH), medianMat);
-    s.position.set(off, 0.08, 0); s.receiveShadow = true; city.add(s);
+  // Los canteros se cortan antes de la plaza: alrededor del Obelisco queda la rotonda libre
+  const RING = 8, medLen = ext + PITCH / 2 - RING;
+  for (const off of [-4.2, 4.2]) for (const sg of [-1, 1]) {
+    const s = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.16, medLen), medianMat);
+    s.position.set(off, 0.08, sg * (RING + medLen / 2)); s.receiveShadow = true; city.add(s);
   }
   const plazaMat = new THREE.MeshStandardMaterial({ color: C("#E4D2C4"), roughness: 0.9 });
   const plaza = new THREE.Mesh(new THREE.CylinderGeometry(5.0, 5.0, 0.18, 64), plazaMat);
@@ -631,7 +633,7 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
 
   // Jacarandás en flor sobre la 9 de Julio y en algunas veredas
   const trees = [];
-  for (let z = -ext; z <= ext; z += 3.1) for (const x of [-4.2, 4.2]) if (Math.hypot(x, z) > 6.5 && r() < 0.85) trees.push([x + (r() - 0.5) * 0.5, z + (r() - 0.5) * 1.2]);
+  for (let z = -ext; z <= ext; z += 3.1) for (const x of [-4.2, 4.2]) if (Math.abs(z) > 9 && r() < 0.85) trees.push([x + (r() - 0.5) * 0.5, z + (r() - 0.5) * 1.2]);
   blocks.forEach(([bx, bz]) => { if (r() < (Q.soft ? 0.1 : 0.35)) for (let i = 0; i < 4; i++) trees.push([bx - BLOCK / 2 - 0.6, bz - BLOCK / 2 + 1.2 + i * 2.5]); });
   const canopyGeo = new THREE.IcosahedronGeometry(1, Q.soft ? 0 : 1);
   const canopyMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9, flatShading: true });
@@ -777,6 +779,8 @@ export function createTour({ canvas, mobile = false, reduce = false, night = fal
     carMesh.instanceMatrix.needsUpdate = true;
     if (state.night > 0.02) { headL.instanceMatrix.needsUpdate = true; tailL.instanceMatrix.needsUpdate = true; carBeams.instanceMatrix.needsUpdate = true; }
   }
+  moveCars(0); // ubica los autos desde el primer cuadro (en el modo liviano no se animan)
+
 
   /* ───────────── INTERIOR ───────────── */
   const room = new THREE.Scene();
